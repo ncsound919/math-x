@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Math X — Cross-Domain Mathematical Intelligence</title>
+    <meta name="description" content="Edge-native AI mathematics system with local computation, Monte Carlo simulation, and RAG-powered document analysis." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@300;400;600&display=swap" rel="stylesheet" />
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$','$']],
+          displayMath: [['$$','$$']],
+          packages: {'[+]': ['ams', 'boldsymbol']}
+        },
+        options: {
+          skipHtmlTags: ['script','noscript','style','textarea','pre']
+        }
+      };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+  </head>
+  <body style="margin:0;background:#060400">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
