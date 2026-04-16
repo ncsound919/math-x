@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Omnibar } from '../components/Omnibar';
 import { ResultsPane } from '../components/ResultsPane';
 import { LeftDrawer } from '../components/LeftDrawer';
+import { DomainSelector } from '../components/DomainSelector';
 import { usePyodide } from '../workers/usePyodide';
 import { useDuckDB } from '../workers/useDuckDB';
 import { useMemory } from '../state/memory';
@@ -15,6 +16,7 @@ const MODES: Mode[] = [
   { id: 'synergy',   icon: '⊗', label: 'Synergy',     color: '#ff6b35', desc: 'Hidden cross-domain connections' },
   { id: 'probability',icon:'🎲',label: 'Probability', color: '#e05aff', desc: 'Monte Carlo, Bayes, stochastic' },
   { id: 'files',     icon: '◫', label: 'File Intel',  color: '#7cff6b', desc: 'Analyze documents & datasets' },
+  { id: 'domain', icon: '∫', label: 'Domain Expert', color: '#e05aff', desc: 'Advanced mathematics specialist' },
 ];
 
 export default function App() {
@@ -24,6 +26,8 @@ export default function App() {
   const [error, setError]             = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen]   = useState(false);
   const [files, setFiles]             = useState<File[]>([]);
+    const [activeDomain, setActiveDomain] = useState<string>('algebraic_number_theory');
+  const [isProofMode, setIsProofMode] = useState(false);
   const [ingestedFiles, setIngestedFiles] = useState<string[]>([]);
 
   const { ready: pyReady, compute }   = usePyodide();
