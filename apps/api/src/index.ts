@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import { chatRouter } from './routes/chat';
 import { codegenRouter } from './routes/codegen';
 import { planRouter } from './routes/plan';
+import domainRouter from './routes/domain';
 
 dotenv.config();
 
@@ -37,14 +38,15 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/api/chat', chatRouter);
 app.use('/api/codegen', codegenRouter);
 app.use('/api/plan', planRouter);
+app.use('/api/domain', domainRouter);
 
 // Health check
 app.get('/health', (_req, res) => {
-  res.json({ status: 'online', system: 'MATH X Intelligence Core', version: '0.1.0' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 app.listen(PORT, () => {
-  console.log(`\n◈ MATH X Intelligence Core online`);
-  console.log(`  → API: http://localhost:${PORT}`);
-  console.log(`  → Health: http://localhost:${PORT}/health\n`);
+  console.log(`Math X API running on port ${PORT}`);
 });
+
+export default app;
