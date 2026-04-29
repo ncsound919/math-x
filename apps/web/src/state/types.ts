@@ -26,10 +26,23 @@ export interface Message {
   role: 'user' | 'assistant';
   content: string;
   files?: string[];
+  streaming?: boolean;
   execution?: {
     stdout?: string;
     error?: string;
     parsed?: any;
   };
   plan?: Plan;
+}
+
+export interface Session {
+  id: string;
+  name: string;
+  mode: string;
+  domain?: string;
+  messages: Message[];
+  createdAt: number;
+  updatedAt: number;
+  tags?: string[];
+  parentId?: string; // set when branched from another session
 }
