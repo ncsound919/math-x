@@ -1,119 +1,187 @@
-/**
- * LiteraturePanel — UI for live arXiv + PubMed literature search and retrieval.
- * Rendered in the left drawer. Allows searching, previewing results,
- * and provides retrieved papers as context in the chat.
- */
-import { useState, useCallback } from 'react';
-import type { LiteraturePaper, RetrievedPaper } from '../utils/useLiteratureRAG';
+// LiteraturePanel — search PubMed + arXiv from within Math X session.
+// Results inject into Claude context for literature-grounded answers.
+import { useState } from 'react';
 
-interface LiteraturePanelProps {
-  onSearchAndIndex: (query: string, sources: ('arxiv' | 'pubmed')[]) => Promise<LiteraturePaper[]>;
-  onRetrieve: (query: string) => Promise<RetrievedPaper[]>;
-  searching: boolean;
-  totalIndexed: number;
-  ready: boolean;
-  modeColor: string;
+interface Paper {
+  id: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  year: string;
+  journal: string;
+  url: string;
+  source: 'pubmed' | 'arxiv';
 }
 
-export function LiteraturePanel({ onSearchAndIndex, onRetrieve, searching, totalIndexed, ready, modeColor }: LiteraturePanelProps) {
+interface LiteraturePanelProps {
+  modeColor?: string;
+  onInjectContext?: (papers: Paper[]) => void;
+  apiBase?: string;
+}
+
+export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBase = '/api' }: LiteraturePanelProps) {
   const [query, setQuery] = useState('');
-  const [papers, setPapers] = useState<LiteraturePaper[]>([]);
-  const [sources, setSources] = useState<('arxiv' | 'pubmed')[]>(['arxiv', 'pubmed']);
-  const [activeTab, setActiveTab] = useState<'search' | 'indexed'>('search');
+  const [sources, setSources] = useState<{ pubmed: boolean; arxiv: boolean }>({ pubmed: true, arxiv: true });
+  const [results, setResults] = useState<Paper[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = useCallback(async () => {
+  const search = async () => {
     if (!query.trim()) return;
-    const results = await onSearchAndIndex(query.trim(), sources);
-    setPapers(results);
-  }, [query, sources, onSearchAndIndex]);
-
-  const toggleSource = (s: 'arxiv' | 'pubmed') => {
-    setSources(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
+    setLoading(true);
+    setError(null);
+    try {
+      const sourcesArr = Object.entries(sources).filter(([, v]) => v).map(([k]) => k);
+      const res = await fetch(`${apiBase}/literature/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, sources: sourcesArr, maxPerSource: 5 }),
+      });
+      const data = await res.json();
+      setResults(data.results || []);
+      if (data.errors?.length) setError(data.errors.join('; '));
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const SOURCE_COLORS = { arxiv: '#f87171', pubmed: '#60a5fa' };
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const injectSelected = () => {
+    const papers = results.filter(r => selected.has(r.id));
+    onInjectContext?.(papers);
+    setSelected(new Set());
+  };
 
   return (
-    <div style={{ fontFamily: 'monospace' }}>
-      {/* Header */}
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ color: modeColor, fontSize: '0.65rem', letterSpacing: '0.14em', fontWeight: 700, marginBottom: 4 }}>LITERATURE RAG</div>
-        <div style={{ color: '#3a2e10', fontSize: '0.58rem' }}>
-          {ready ? `${totalIndexed} papers indexed locally` : 'loading embedder…'}
-        </div>
+    <div style={{
+      background: '#080700', border: `1px solid ${modeColor}22`,
+      borderRadius: 12, padding: 16, fontFamily: 'inherit',
+    }}>
+      <div style={{ color: modeColor, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.14em', marginBottom: 12 }}>
+        📚 LITERATURE SEARCH
+      </div>
+
+      {/* Search bar */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && search()}
+          placeholder="Search PubMed + arXiv..."
+          style={{
+            flex: 1, background: '#0f0c02', border: `1px solid ${modeColor}33`,
+            borderRadius: 8, padding: '8px 12px', color: '#c8b880',
+            fontSize: '0.72rem', outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+        <button onClick={search} disabled={loading}
+          style={{
+            background: loading ? '#1a1408' : modeColor, color: '#0a0800',
+            border: 'none', borderRadius: 8, padding: '8px 14px',
+            fontSize: '0.7rem', fontWeight: 700, cursor: loading ? 'default' : 'pointer',
+          }}>
+          {loading ? '○' : 'SEARCH'}
+        </button>
       </div>
 
       {/* Source toggles */}
-      <div style={{ display: 'flex', gap: 5, marginBottom: 8 }}>
-        {(['arxiv', 'pubmed'] as const).map(s => (
-          <button key={s} onClick={() => toggleSource(s)} style={{
-            background: sources.includes(s) ? SOURCE_COLORS[s] + '22' : 'transparent',
-            border: `1px solid ${sources.includes(s) ? SOURCE_COLORS[s] + '66' : '#2a2010'}`,
-            borderRadius: 4, color: sources.includes(s) ? SOURCE_COLORS[s] : '#4a3820',
-            fontSize: '0.58rem', padding: '2px 8px', cursor: 'pointer', letterSpacing: '0.08em', fontFamily: 'monospace',
-          }}>
-            {s.toUpperCase()}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        {(['pubmed', 'arxiv'] as const).map(src => (
+          <button key={src} onClick={() => setSources(p => ({ ...p, [src]: !p[src] }))}
+            style={{
+              background: sources[src] ? `${modeColor}18` : '#0f0c02',
+              border: `1px solid ${sources[src] ? modeColor + '55' : '#2a2010'}`,
+              borderRadius: 20, padding: '3px 12px',
+              color: sources[src] ? modeColor : '#4a3820',
+              fontSize: '0.62rem', cursor: 'pointer', fontWeight: 600,
+            }}>
+            {src === 'pubmed' ? '🧬 PubMed' : '📜 arXiv'}
           </button>
         ))}
       </div>
 
-      {/* Search input */}
-      <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
-        <input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSearch()}
-          placeholder="e.g. RNA-seq differential expression"
-          style={{
-            flex: 1, background: '#0d0a04', border: '1px solid #2a2010',
-            borderRadius: 4, color: '#c8a866', fontSize: '0.62rem',
-            padding: '5px 8px', fontFamily: 'monospace', outline: 'none',
-          }}
-        />
-        <button onClick={handleSearch} disabled={searching || !ready} style={{
-          background: 'none', border: `1px solid ${modeColor}55`,
-          borderRadius: 4, color: modeColor, fontSize: '0.6rem',
-          padding: '4px 10px', cursor: 'pointer', letterSpacing: '0.08em',
-          opacity: searching || !ready ? 0.4 : 1,
-        }}>{searching ? '⟳' : 'SEARCH'}</button>
-      </div>
+      {error && <div style={{ color: '#cc6644', fontSize: '0.65rem', marginBottom: 8 }}>⚠ {error}</div>}
 
       {/* Results */}
-      {papers.map(p => (
-        <div key={p.id} style={{
-          background: '#0a0800', border: '1px solid #2a2010',
-          borderRadius: 5, padding: '7px 8px', marginBottom: 6,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 3 }}>
-            <span style={{
-              background: SOURCE_COLORS[p.source] + '22', color: SOURCE_COLORS[p.source],
-              fontSize: '0.52rem', padding: '1px 5px', borderRadius: 3, letterSpacing: '0.1em',
-            }}>{p.source.toUpperCase()}</span>
-            <span style={{ color: '#3a2e10', fontSize: '0.55rem' }}>{p.published}</span>
-          </div>
-          <a
-            href={p.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: '#c8a866', fontSize: '0.64rem', textDecoration: 'none', lineHeight: 1.4, display: 'block', marginBottom: 3 }}
-          >
-            {p.title.slice(0, 90)}{p.title.length > 90 ? '…' : ''}
-          </a>
-          <div style={{ color: '#4a3820', fontSize: '0.58rem' }}>{p.authors.slice(0, 3).join(', ')}{p.authors.length > 3 ? ' et al.' : ''}</div>
-          {p.abstract && (
-            <details style={{ marginTop: 4 }}>
-              <summary style={{ color: '#3a2e10', fontSize: '0.55rem', cursor: 'pointer', letterSpacing: '0.08em' }}>ABSTRACT</summary>
-              <div style={{ color: '#6a5a3a', fontSize: '0.58rem', marginTop: 3, lineHeight: 1.5 }}>{p.abstract.slice(0, 300)}…</div>
-            </details>
-          )}
-        </div>
-      ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 400, overflowY: 'auto' }}>
+        {results.map(paper => {
+          const isSelected = selected.has(paper.id);
+          return (
+            <div key={paper.id}
+              onClick={() => toggleSelect(paper.id)}
+              style={{
+                background: isSelected ? `${modeColor}0e` : '#0f0c02',
+                border: `1px solid ${isSelected ? modeColor + '55' : '#2a2010'}`,
+                borderRadius: 8, padding: '10px 12px', cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ color: paper.source === 'pubmed' ? '#4a9a6a' : '#6a8aaa', fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.1em' }}>
+                  {paper.source.toUpperCase()} · {paper.year}
+                </span>
+                {isSelected && <span style={{ color: modeColor, fontSize: '0.62rem' }}>✓ SELECTED</span>}
+              </div>
+              <div style={{ color: '#c8b880', fontSize: '0.7rem', fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>
+                {paper.title}
+              </div>
+              <div style={{ color: '#5a4a2a', fontSize: '0.62rem', marginBottom: 6 }}>
+                {paper.authors.slice(0, 3).join(', ')}{paper.authors.length > 3 ? ' et al.' : ''}
+                {paper.journal !== 'arXiv' ? ` · ${paper.journal}` : ''}
+              </div>
+              <div style={{ color: '#4a3820', fontSize: '0.62rem', lineHeight: 1.6 }}>
+                {paper.abstract.slice(0, 200)}{paper.abstract.length > 200 ? '...' : ''}
+              </div>
+              <a href={paper.url} target="_blank" rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{ color: modeColor + '88', fontSize: '0.6rem', display: 'block', marginTop: 6 }}>
+                ↗ {paper.url}
+              </a>
+            </div>
+          );
+        })}
+      </div>
 
-      {papers.length === 0 && !searching && (
-        <div style={{ color: '#3a2e10', fontSize: '0.6rem', textAlign: 'center', padding: '12px 0' }}>
-          Search arXiv and PubMed to build your local knowledge base
-        </div>
+      {/* Inject selected into context */}
+      {selected.size > 0 && (
+        <button onClick={injectSelected}
+          style={{
+            marginTop: 10, width: '100%', background: modeColor,
+            color: '#0a0800', border: 'none', borderRadius: 8,
+            padding: '10px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
+          }}>
+          ⬆ INJECT {selected.size} PAPER{selected.size > 1 ? 'S' : ''} INTO CONTEXT
+        </button>
       )}
     </div>
   );
+}
+
+// Build literature context block for Claude injection
+export function buildLiteratureContext(papers: Paper[]): string {
+  if (!papers.length) return '';
+  return [
+    '## Injected Literature Context',
+    `*${papers.length} paper${papers.length > 1 ? 's' : ''} selected from PubMed/arXiv — use these to ground your answer.*`,
+    '',
+    ...papers.map((p, i) =>
+      `### [${i + 1}] ${p.title} (${p.year})
+**Authors:** ${p.authors.join(', ')}  
+**Source:** ${p.source.toUpperCase()} · ${p.journal}  
+**URL:** ${p.url}
+
+**Abstract:**
+${p.abstract}`
+    ),
+  ].join('\n');
 }

@@ -1,131 +1,207 @@
-/**
- * /api/literature — live RAG from arXiv and PubMed.
- * Searches both databases, returns abstracts + metadata.
- * The frontend embeds these locally into LanceDB for vector retrieval.
- */
+// Literature route — PubMed NCBI E-utilities + arXiv search
+// Returns structured paper metadata + abstracts for RAG injection into Claude context
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 
 const router = Router();
 
-const SearchSchema = z.object({
-  query: z.string().min(2).max(300),
-  sources: z.array(z.enum(['arxiv', 'pubmed'])).default(['arxiv', 'pubmed']),
-  maxResults: z.number().min(1).max(20).default(8),
-});
+const NCBI_BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+const ARXIV_BASE = 'https://export.arxiv.org/api/query';
+const TOOL_NAME = 'mathx-literature';
+const TOOL_EMAIL = process.env.NCBI_EMAIL || 'mathx@ncsound919.dev';
+const NCBI_API_KEY = process.env.NCBI_API_KEY || '';
 
-// ---- arXiv ----
-async function searchArxiv(query: string, max: number): Promise<any[]> {
-  const encoded = encodeURIComponent(query);
-  const url = `https://export.arxiv.org/api/query?search_query=all:${encoded}&start=0&max_results=${max}&sortBy=relevance&sortOrder=descending`;
-  const res = await fetch(url, { headers: { 'User-Agent': 'MathX/2.0 (research tool)' } });
-  if (!res.ok) throw new Error(`arXiv fetch failed: ${res.status}`);
-  const xml = await res.text();
-
-  // Minimal XML parsing — no dependency needed
-  const entries: any[] = [];
-  const entryPattern = /<entry>([\s\S]*?)<\/entry>/g;
-  let m;
-  while ((m = entryPattern.exec(xml)) !== null && entries.length < max) {
-    const block = m[1];
-    const title   = (/<title>([\s\S]*?)<\/title>/.exec(block)?.[1] || '').replace(/\n/g, ' ').trim();
-    const summary = (/<summary>([\s\S]*?)<\/summary>/.exec(block)?.[1] || '').replace(/\n/g, ' ').trim().slice(0, 600);
-    const id      = (/<id>([\s\S]*?)<\/id>/.exec(block)?.[1] || '').trim();
-    const published = (/<published>([\s\S]*?)<\/published>/.exec(block)?.[1] || '').trim();
-    const authors: string[] = [];
-    const authorPattern = /<author>[\s\S]*?<name>([\s\S]*?)<\/name>/g;
-    let am;
-    while ((am = authorPattern.exec(block)) !== null) authors.push(am[1].trim());
-
-    if (title && summary) {
-      entries.push({
-        id: id.replace('http://arxiv.org/abs/', 'arxiv:'),
-        title,
-        abstract: summary,
-        authors: authors.slice(0, 5),
-        published: published.slice(0, 10),
-        url: id,
-        source: 'arxiv',
-      });
-    }
-  }
-  return entries;
+interface PaperResult {
+  id: string;
+  title: string;
+  authors: string[];
+  abstract: string;
+  year: string;
+  journal: string;
+  url: string;
+  source: 'pubmed' | 'arxiv';
+  relevanceScore?: number;
 }
 
-// ---- PubMed ----
-async function searchPubMed(query: string, max: number): Promise<any[]> {
-  const encoded = encodeURIComponent(query);
-  // Step 1: ESearch to get IDs
-  const searchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${encoded}&retmax=${max}&retmode=json&usehistory=n`;
-  const searchRes = await fetch(searchUrl, { headers: { 'User-Agent': 'MathX/2.0' } });
-  if (!searchRes.ok) throw new Error(`PubMed search failed: ${searchRes.status}`);
-  const searchJson = await searchRes.json();
-  const ids: string[] = searchJson?.esearchresult?.idlist || [];
+// PubMed ESearch + EFetch pipeline
+async function searchPubMed(query: string, maxResults = 5): Promise<PaperResult[]> {
+  const apiKeyParam = NCBI_API_KEY ? `&api_key=${NCBI_API_KEY}` : '';
+  const searchUrl = `${NCBI_BASE}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${maxResults}&retmode=json&tool=${TOOL_NAME}&email=${TOOL_EMAIL}${apiKeyParam}`;
+
+  const searchRes = await fetch(searchUrl);
+  if (!searchRes.ok) throw new Error(`PubMed ESearch failed: ${searchRes.status}`);
+  const searchData = await searchRes.json() as any;
+
+  const ids: string[] = searchData?.esearchresult?.idlist || [];
   if (ids.length === 0) return [];
 
-  // Step 2: ESummary to get metadata
-  const summaryUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&id=${ids.join(',')}&retmode=json`;
-  const summaryRes = await fetch(summaryUrl, { headers: { 'User-Agent': 'MathX/2.0' } });
-  if (!summaryRes.ok) throw new Error(`PubMed summary failed: ${summaryRes.status}`);
-  const summaryJson = await summaryRes.json();
-  const result = summaryJson?.result || {};
+  const fetchUrl = `${NCBI_BASE}/efetch.fcgi?db=pubmed&id=${ids.join(',')}&rettype=abstract&retmode=xml&tool=${TOOL_NAME}&email=${TOOL_EMAIL}${apiKeyParam}`;
+  const fetchRes = await fetch(fetchUrl);
+  if (!fetchRes.ok) throw new Error(`PubMed EFetch failed: ${fetchRes.status}`);
+  const xml = await fetchRes.text();
 
-  // Step 3: EFetch abstracts for top 5 (rate limit consideration)
-  const topIds = ids.slice(0, 5);
-  let abstracts: Record<string, string> = {};
-  try {
-    const fetchUrl = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=${topIds.join(',')}&rettype=abstract&retmode=text`;
-    const fetchRes = await fetch(fetchUrl, { headers: { 'User-Agent': 'MathX/2.0' } });
-    const text = await fetchRes.text();
-    // Parse individual abstracts by PMID
-    const sections = text.split(/\n\n\d+\. /);
-    sections.forEach((section, i) => {
-      if (topIds[i]) abstracts[topIds[i]] = section.slice(0, 600).replace(/\n/g, ' ').trim();
+  return parsePubMedXML(xml, ids);
+}
+
+function parsePubMedXML(xml: string, ids: string[]): PaperResult[] {
+  const articles: PaperResult[] = [];
+  const articleBlocks = xml.match(/<PubmedArticle>(.*?)<\/PubmedArticle>/gs) || [];
+
+  for (let i = 0; i < articleBlocks.length; i++) {
+    const block = articleBlocks[i];
+
+    const titleMatch = block.match(/<ArticleTitle[^>]*>(.*?)<\/ArticleTitle>/s);
+    const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : 'Untitled';
+
+    const abstractParts = block.match(/<AbstractText[^>]*>(.*?)<\/AbstractText>/gs) || [];
+    const abstract = abstractParts.map(p => p.replace(/<[^>]+>/g, '').trim()).join(' ');
+
+    const authorMatches = block.match(/<LastName>(.*?)<\/LastName>/gs) || [];
+    const authors = authorMatches.slice(0, 4).map(m => m.replace(/<[^>]+>/g, '').trim());
+
+    const yearMatch = block.match(/<PubDate>.*?<Year>(\d{4})<\/Year>/s);
+    const year = yearMatch ? yearMatch[1] : 'Unknown';
+
+    const journalMatch = block.match(/<Title>(.*?)<\/Title>/);
+    const journal = journalMatch ? journalMatch[1].replace(/<[^>]+>/g, '').trim() : '';
+
+    const pmid = ids[i] || '';
+
+    articles.push({
+      id: `pmid-${pmid}`,
+      title,
+      authors,
+      abstract: abstract.slice(0, 1500),
+      year,
+      journal,
+      url: `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`,
+      source: 'pubmed',
     });
-  } catch (e) {
-    // Non-fatal — fall back to titles only
   }
 
-  return ids.map(id => {
-    const doc = result[id] || {};
-    return {
-      id: `pmid:${id}`,
-      title: doc.title || '',
-      abstract: abstracts[id] || doc.title || '',
-      authors: (doc.authors || []).slice(0, 5).map((a: any) => a.name || ''),
-      published: (doc.pubdate || '').slice(0, 10),
-      url: `https://pubmed.ncbi.nlm.nih.gov/${id}/`,
-      source: 'pubmed',
-      journal: doc.source || '',
-    };
-  }).filter(d => d.title);
+  return articles;
 }
+
+// arXiv Atom feed query
+async function searchArXiv(query: string, maxResults = 5): Promise<PaperResult[]> {
+  const url = `${ARXIV_BASE}?search_query=all:${encodeURIComponent(query)}&start=0&max_results=${maxResults}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`arXiv search failed: ${res.status}`);
+  const xml = await res.text();
+  return parseArXivXML(xml);
+}
+
+function parseArXivXML(xml: string): PaperResult[] {
+  const entries = xml.match(/<entry>(.*?)<\/entry>/gs) || [];
+  return entries.map(entry => {
+    const titleMatch = entry.match(/<title>(.*?)<\/title>/s);
+    const title = titleMatch ? titleMatch[1].replace(/\s+/g, ' ').trim() : 'Untitled';
+
+    const summaryMatch = entry.match(/<summary>(.*?)<\/summary>/s);
+    const abstract = summaryMatch ? summaryMatch[1].replace(/\s+/g, ' ').trim().slice(0, 1500) : '';
+
+    const authorMatches = entry.match(/<name>(.*?)<\/name>/g) || [];
+    const authors = authorMatches.slice(0, 4).map(m => m.replace(/<[^>]+>/g, '').trim());
+
+    const publishedMatch = entry.match(/<published>(\d{4})/);
+    const year = publishedMatch ? publishedMatch[1] : 'Unknown';
+
+    const idMatch = entry.match(/<id>(.*?)<\/id>/);
+    const arxivId = idMatch ? idMatch[1].trim() : '';
+    const shortId = arxivId.replace('http://arxiv.org/abs/', '').replace('https://arxiv.org/abs/', '');
+
+    return {
+      id: `arxiv-${shortId}`,
+      title,
+      authors,
+      abstract,
+      year,
+      journal: 'arXiv',
+      url: `https://arxiv.org/abs/${shortId}`,
+      source: 'arxiv' as const,
+    };
+  });
+}
+
+const SearchSchema = z.object({
+  query: z.string().min(2),
+  sources: z.array(z.enum(['pubmed', 'arxiv'])).default(['pubmed', 'arxiv']),
+  maxPerSource: z.number().min(1).max(10).default(4),
+});
 
 router.post('/search', async (req: Request, res: Response) => {
   try {
-    const { query, sources, maxResults } = SearchSchema.parse(req.body);
-    const perSource = Math.ceil(maxResults / sources.length);
+    const { query, sources, maxPerSource } = SearchSchema.parse(req.body);
+    const results: PaperResult[] = [];
+    const errors: string[] = [];
 
-    const results = await Promise.allSettled([
-      sources.includes('arxiv')  ? searchArxiv(query, perSource)  : Promise.resolve([]),
-      sources.includes('pubmed') ? searchPubMed(query, perSource) : Promise.resolve([]),
+    await Promise.all([
+      sources.includes('pubmed') ?
+        searchPubMed(query, maxPerSource)
+          .then(r => results.push(...r))
+          .catch(e => errors.push(`PubMed: ${e.message}`))
+        : Promise.resolve(),
+      sources.includes('arxiv') ?
+        searchArXiv(query, maxPerSource)
+          .then(r => results.push(...r))
+          .catch(e => errors.push(`arXiv: ${e.message}`))
+        : Promise.resolve(),
     ]);
 
-    const arxivResults  = results[0].status === 'fulfilled' ? results[0].value : [];
-    const pubmedResults = results[1].status === 'fulfilled' ? results[1].value : [];
-
-    const errors: string[] = [];
-    if (results[0].status === 'rejected') errors.push(`arXiv: ${(results[0] as any).reason?.message}`);
-    if (results[1].status === 'rejected') errors.push(`PubMed: ${(results[1] as any).reason?.message}`);
-
-    res.json({
-      papers: [...arxivResults, ...pubmedResults].slice(0, maxResults),
-      counts: { arxiv: arxivResults.length, pubmed: pubmedResults.length },
-      errors: errors.length > 0 ? errors : undefined,
-    });
+    res.json({ results, errors, query });
   } catch (err: any) {
-    console.error('Literature search error:', err);
-    res.status(500).json({ error: err.message, papers: [] });
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Fetch abstract for a specific PMID
+router.get('/pubmed/:pmid', async (req: Request, res: Response) => {
+  try {
+    const { pmid } = req.params;
+    const apiKeyParam = NCBI_API_KEY ? `&api_key=${NCBI_API_KEY}` : '';
+    const url = `${NCBI_BASE}/efetch.fcgi?db=pubmed&id=${pmid}&rettype=abstract&retmode=xml&tool=${TOOL_NAME}&email=${TOOL_EMAIL}${apiKeyParam}`;
+    const fetchRes = await fetch(url);
+    const xml = await fetchRes.text();
+    const parsed = parsePubMedXML(xml, [pmid]);
+    res.json({ paper: parsed[0] || null });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Gene/protein lookup via NCBI Gene database
+router.get('/gene/:query', async (req: Request, res: Response) => {
+  try {
+    const { query } = req.params;
+    const apiKeyParam = NCBI_API_KEY ? `&api_key=${NCBI_API_KEY}` : '';
+    const searchUrl = `${NCBI_BASE}/esearch.fcgi?db=gene&term=${encodeURIComponent(query + '[gene]')}&retmax=5&retmode=json&tool=${TOOL_NAME}&email=${TOOL_EMAIL}${apiKeyParam}`;
+    const searchRes = await fetch(searchUrl);
+    const searchData = await searchRes.json() as any;
+    const ids: string[] = searchData?.esearchresult?.idlist || [];
+    if (ids.length === 0) return res.json({ genes: [] });
+
+    const summaryUrl = `${NCBI_BASE}/esummary.fcgi?db=gene&id=${ids.slice(0, 5).join(',')}&retmode=json&tool=${TOOL_NAME}&email=${TOOL_EMAIL}${apiKeyParam}`;
+    const summaryRes = await fetch(summaryUrl);
+    const summaryData = await summaryRes.json() as any;
+
+    const genes = ids.slice(0, 5).map(id => {
+      const doc = summaryData?.result?.[id];
+      if (!doc) return null;
+      return {
+        id,
+        name: doc.name,
+        description: doc.description,
+        organism: doc.organism?.scientificname,
+        chromosome: doc.chromosome,
+        location: doc.maplocation,
+        summary: doc.summary?.slice(0, 500),
+        url: `https://www.ncbi.nlm.nih.gov/gene/${id}`,
+      };
+    }).filter(Boolean);
+
+    res.json({ genes });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 
