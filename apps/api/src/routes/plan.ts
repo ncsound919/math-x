@@ -23,12 +23,15 @@ Schema:
 const PlanRequestSchema = z.object({
   query: z.string(),
   mode: z.string().optional(),
+  domain: z.string().optional(),
   hasFiles: z.boolean().optional(),
 });
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { query, mode, hasFiles } = PlanRequestSchema.parse(req.body);
+    const { query, mode, domain, hasFiles } = PlanRequestSchema.parse(req.body);
+
+    const domainContext = domain ? `\nActive domain specialist: ${domain}` : '';
 
     const response = await client.messages.create({
       model: process.env.MODEL || 'claude-sonnet-4-20250514',
@@ -36,7 +39,7 @@ router.post('/', async (req: Request, res: Response) => {
       system: PLANNER_SYSTEM,
       messages: [{
         role: 'user',
-        content: `Mode: ${mode || 'scientist'}\nHas uploaded files: ${hasFiles || false}\nQuery: ${query}`,
+        content: `Mode: ${mode || 'scientist'}${domainContext}\nHas uploaded files: ${hasFiles || false}\nQuery: ${query}`,
       }],
     });
 
