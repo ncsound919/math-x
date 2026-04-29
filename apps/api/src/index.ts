@@ -7,6 +7,7 @@ import { chatRouter } from './routes/chat';
 import { codegenRouter } from './routes/codegen';
 import { planRouter } from './routes/plan';
 import { verifyRouter } from './routes/verify';
+import { literatureRouter } from './routes/literature';
 import domainRouter from './routes/domain';
 
 dotenv.config();
@@ -32,11 +33,11 @@ app.use('/api', limiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Routes
 app.use('/api/chat', chatRouter);
 app.use('/api/codegen', codegenRouter);
 app.use('/api/plan', planRouter);
 app.use('/api/verify', verifyRouter);
+app.use('/api/literature', literatureRouter);
 app.use('/api/domain', domainRouter);
 
 app.get('/health', (_req, res) => {
