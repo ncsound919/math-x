@@ -21,6 +21,7 @@ const MessageSchema = z.object({
 const ChatRequestSchema = z.object({
   messages: z.array(MessageSchema),
   mode: z.string().default('scientist'),
+  domain: z.string().optional(),
   retrieved: z.array(z.object({
     source: z.string(),
     text: z.string(),
@@ -37,7 +38,7 @@ const ChatRequestSchema = z.object({
 router.post('/', async (req: Request, res: Response) => {
   try {
     const body = ChatRequestSchema.parse(req.body);
-    const { messages, mode, retrieved, execution } = body;
+    const { messages, mode, domain, retrieved, execution } = body;
 
     // Build context injection from local retrieval results
     let contextBlock = '';
@@ -54,8 +55,10 @@ router.post('/', async (req: Request, res: Response) => {
       executionBlock += `\n\nComputation error: ${execution.error}`;
     }
 
-    // Inject mode prefix into last user message
-    const prefix = MODE_PREFIXES[mode] || MODE_PREFIXES.scientist;
+    // Resolve mode prefix — domain specialist overrides mode if domain is set
+    const prefixKey = domain && MODE_PREFIXES[domain] ? domain : mode;
+    const prefix = MODE_PREFIXES[prefixKey] || MODE_PREFIXES.scientist;
+
     const processedMessages = messages.map((m, i) => {
       if (i === messages.length - 1 && m.role === 'user') {
         const content = typeof m.content === 'string'
@@ -66,18 +69,46 @@ router.post('/', async (req: Request, res: Response) => {
       return m;
     });
 
-    const response = await client.messages.create({
+    // Set SSE headers for streaming
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    res.flushHeaders();
+
+    const stream = client.messages.stream({
       model: process.env.MODEL || 'claude-sonnet-4-20250514',
       max_tokens: parseInt(process.env.MAX_TOKENS || '4000'),
       system: MATHX_SYSTEM,
       messages: processedMessages as any,
     });
 
-    const text = response.content.find(b => b.type === 'text')?.text || '';
-    res.json({ text, usage: response.usage });
+    stream.on('text', (text: string) => {
+      res.write(`data: ${JSON.stringify({ delta: text })}\n\n`);
+    });
+
+    stream.on('finalMessage', (msg: any) => {
+      res.write(`data: ${JSON.stringify({ done: true, usage: msg.usage })}\n\n`);
+      res.end();
+    });
+
+    stream.on('error', (err: Error) => {
+      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.end();
+    });
+
+    req.on('close', () => {
+      stream.abort();
+    });
+
   } catch (err: any) {
     console.error('Chat route error:', err);
-    res.status(500).json({ error: err.message || 'Internal server error' });
+    if (!res.headersSent) {
+      res.status(500).json({ error: err.message || 'Internal server error' });
+    } else {
+      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.end();
+    }
   }
 });
 

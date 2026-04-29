@@ -6,14 +6,23 @@ type PyodideWorkerMessage =
   | { type: 'error'; id: string; error: string };
 
 const WORKER_CODE = `
-importScripts('https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js');
+importScripts('https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js');
 
 let pyodide = null;
 let ready = false;
 
 async function boot() {
-  pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.23.4/full/' });
+  pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/' });
   await pyodide.loadPackage(['numpy', 'sympy', 'scipy', 'pandas']);
+  // Load extended scientific packages via micropip
+  await pyodide.loadPackage('micropip');
+  const micropip = pyodide.pyimport('micropip');
+  try {
+    await micropip.install(['scikit-learn', 'statsmodels', 'networkx']);
+  } catch(e) {
+    // Optional packages — non-fatal if CDN unavailable
+    console.warn('Optional packages failed to load:', e);
+  }
   ready = true;
   self.postMessage({ type: 'ready' });
 }
@@ -69,7 +78,7 @@ export function usePyodide() {
   const compute = (code: string): Promise<string> => {
     if (!workerRef.current || !ready) return Promise.resolve('WASM engine not ready.');
     const id = `job-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       pendingRef.current.set(id, { resolve, reject: (e) => resolve(`Error: ${e}`) });
       workerRef.current!.postMessage({ type: 'run', code, id });
     });
