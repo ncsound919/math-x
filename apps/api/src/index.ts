@@ -3,12 +3,16 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
-import { chatRouter } from './routes/chat';
-import { codegenRouter } from './routes/codegen';
-import { planRouter } from './routes/plan';
-import { verifyRouter } from './routes/verify';
+import { chatRouter }       from './routes/chat';
+import { codegenRouter }    from './routes/codegen';
+import { planRouter }       from './routes/plan';
+import { verifyRouter }     from './routes/verify';
 import { literatureRouter } from './routes/literature';
-import domainRouter from './routes/domain';
+import { ocrRouter }        from './routes/ocr';
+import { bioRouter }        from './routes/bio';
+import { hypothesisRouter } from './routes/hypothesis';
+import { analogiesRouter }  from './routes/analogies';
+import domainRouter         from './routes/domain';
 
 dotenv.config();
 
@@ -25,7 +29,7 @@ app.use(cors({
 
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 60,
+  max: 120,
   message: { error: 'Too many requests — slow down the query rate.' },
 });
 app.use('/api', limiter);
@@ -33,19 +37,23 @@ app.use('/api', limiter);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-app.use('/api/chat', chatRouter);
-app.use('/api/codegen', codegenRouter);
-app.use('/api/plan', planRouter);
-app.use('/api/verify', verifyRouter);
+app.use('/api/chat',       chatRouter);
+app.use('/api/codegen',    codegenRouter);
+app.use('/api/plan',       planRouter);
+app.use('/api/verify',     verifyRouter);
 app.use('/api/literature', literatureRouter);
-app.use('/api/domain', domainRouter);
+app.use('/api/domain',     domainRouter);
+app.use('/api/ocr',        ocrRouter);
+app.use('/api/bio',        bioRouter);
+app.use('/api/hypothesis', hypothesisRouter);
+app.use('/api/analogies',  analogiesRouter);
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '2.0.0' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0.3.0' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Math X API v2 running on port ${PORT}`);
+  console.log(`Math X API v0.3 running on port ${PORT}`);
 });
 
 export default app;
