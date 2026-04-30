@@ -1,25 +1,31 @@
-export interface Mode {
+export interface PlotlySpec {
+  data: unknown[];
+  layout?: Record<string, unknown>;
+}
+
+export interface TableData {
+  columns: string[];
+  rows: unknown[][];
+}
+
+export interface LiteratureSnippet {
   id: string;
-  icon: string;
-  label: string;
-  color: string;
-  desc: string;
-}
-
-export interface Plan {
-  engine: string;
-  requires_code: boolean;
-  requires_chart: boolean;
-  requires_retrieval: boolean;
-  domain: string;
-  complexity: 'low' | 'medium' | 'high';
-  summary: string;
-}
-
-export interface RetrievedChunk {
-  source: string;
-  text: string;
+  title: string;
+  authors: string[];
+  url: string;
   score: number;
+  published: string;
+  source: 'arxiv' | 'pubmed';
+  abstract?: string;
+}
+
+export interface HypothesisResult {
+  conjecture: string;
+  falsifiability: string;
+  testCode: string;
+  numericalResult?: string;
+  symbolicResult?: string;
+  verdict: 'supported' | 'refuted' | 'inconclusive' | 'pending';
 }
 
 export interface Message {
@@ -30,19 +36,40 @@ export interface Message {
   execution?: {
     stdout?: string;
     error?: string;
-    parsed?: any;
+    chart?: PlotlySpec;
+    table?: TableData;
+    parsed?: unknown;
+    code?: string;
   };
   plan?: Plan;
+  literature?: LiteratureSnippet[];
+  hypothesisResult?: HypothesisResult;
+}
+
+export interface Plan {
+  requires_code: boolean;
+  requires_chart: boolean;
+  requires_retrieval: boolean;
+  engine: string;
+  domain?: string;
+  complexity?: string;
+  summary?: string;
+}
+
+export interface Mode {
+  id: string;
+  icon: string;
+  label: string;
+  color: string;
+  desc: string;
 }
 
 export interface Session {
   id: string;
   name: string;
   mode: string;
-  domain?: string;
   messages: Message[];
   createdAt: number;
   updatedAt: number;
-  tags?: string[];
-  parentId?: string; // set when branched from another session
+  tags: string[];
 }
