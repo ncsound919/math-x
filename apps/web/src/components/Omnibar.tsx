@@ -1,26 +1,29 @@
 import { useState, useRef, useCallback, useEffect, DragEvent } from 'react';
 import { useOCR } from '../utils/useOCR';
+import { ModelSelector } from './ModelSelector';
 import type { Mode } from '../state/types';
+import type { ProviderOption } from './ModelSelector';
+
+const ACCEPT = '.pdf,.csv,.json,.txt,.py,.ts,.fasta,.fa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.pdb,.parquet,.png,.jpg,.jpeg,.gif,.webp';
 
 interface OmnibarProps {
   onSend: (text: string, files: File[]) => void;
   loading: boolean;
   onStop?: () => void;
   modeObj: Mode;
+  provider: ProviderOption;
+  onProviderChange: (v: ProviderOption) => void;
 }
 
-const ACCEPT = '.pdf,.csv,.json,.txt,.py,.ts,.fasta,.fa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.pdb,.parquet,.png,.jpg,.jpeg,.gif,.webp';
-
-export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
-  const [input, setInput] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [dragging, setDragging] = useState(false);
+export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProviderChange }: OmnibarProps) {
+  const [input, setInput]           = useState('');
+  const [files, setFiles]           = useState<File[]>([]);
+  const [dragging, setDragging]     = useState(false);
   const [ocrPreview, setOcrPreview] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { extractLatex, loading: ocrLoading, result: ocrResult, error: ocrError } = useOCR();
 
-  // Listen for workflow template injection from LeftDrawer
   useEffect(() => {
     const handler = (e: MessageEvent) => {
       if (e.data?.type === 'SET_INPUT') {
@@ -32,7 +35,6 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
     return () => window.removeEventListener('message', handler);
   }, []);
 
-  // Auto-inject OCR result into input when ready
   useEffect(() => {
     if (ocrResult?.latex) {
       setInput(prev => prev ? `${prev}\n\n${ocrResult.latex}` : ocrResult.latex);
@@ -40,7 +42,6 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
     }
   }, [ocrResult]);
 
-  // Auto-resize textarea
   useEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -58,18 +59,10 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
   }, [input, files, onSend]);
 
   const addFiles = useCallback(async (incoming: File[]) => {
-    const images = incoming.filter(f => f.type.startsWith('image/'));
+    const images    = incoming.filter(f => f.type.startsWith('image/'));
     const nonImages = incoming.filter(f => !f.type.startsWith('image/'));
-
-    // Non-image files go straight to the file list
-    setFiles(prev => [
-      ...prev,
-      ...nonImages.filter(f => !prev.find(e => e.name === f.name)),
-    ]);
-
-    // Image files → OCR
+    setFiles(prev => [...prev, ...nonImages.filter(f => !prev.find(e => e.name === f.name))]);
     for (const img of images) {
-      // Show preview
       const url = URL.createObjectURL(img);
       setOcrPreview(url);
       await extractLatex(img);
@@ -77,22 +70,15 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
     }
   }, [extractLatex]);
 
-  const onDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragging(false);
-    addFiles(Array.from(e.dataTransfer.files));
-  }, [addFiles]);
-
-  const onDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragging(true); };
+  const onDrop      = useCallback((e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragging(false); addFiles(Array.from(e.dataTransfer.files)); }, [addFiles]);
+  const onDragOver  = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragging(true); };
   const onDragLeave = () => setDragging(false);
-
-  const removeFile = (name: string) => setFiles(prev => prev.filter(f => f.name !== name));
+  const removeFile  = (name: string) => setFiles(prev => prev.filter(f => f.name !== name));
 
   const { color } = modeObj;
 
   return (
     <div style={{ padding: '0 20px 16px', flexShrink: 0 }}>
-      {/* OCR preview */}
       {ocrPreview && (
         <div style={{
           marginBottom: 8, padding: '8px 12px',
@@ -112,7 +98,6 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
         </div>
       )}
 
-      {/* File chips */}
       {files.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
           {files.map(f => (
@@ -130,16 +115,12 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
         </div>
       )}
 
-      {/* Main input */}
       <div
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
+        onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
         style={{
           background: '#0a0800',
           border: `1px solid ${dragging ? color : '#2a2010'}`,
-          borderRadius: 10,
-          padding: '10px 14px',
+          borderRadius: 10, padding: '10px 14px',
           transition: 'border-color 0.15s',
           boxShadow: dragging ? `0 0 16px ${color}22` : 'none',
         }}
@@ -149,12 +130,9 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => {
-            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              handleSend();
-            }
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); handleSend(); }
           }}
-          placeholder={dragging ? 'Drop files here…' : 'Ask a mathematical or bioinformatics question, drop a file, or paste a formula…'}
+          placeholder={dragging ? 'Drop files here…' : 'Ask a mathematical question, drop a file, or paste a formula…'}
           rows={1}
           style={{
             width: '100%', background: 'none', border: 'none', outline: 'none',
@@ -163,26 +141,22 @@ export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
           }}
         />
 
-        {/* Toolbar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {/* File picker */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              title="Attach file (PDF, CSV, FASTA, image…)"
+              title="Attach file"
               style={{
                 background: 'none', border: '1px solid #2a2010', borderRadius: 4,
                 color: '#6a5830', cursor: 'pointer', fontSize: '0.75rem', padding: '3px 8px',
               }}
             >📎</button>
             <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept={ACCEPT}
+              ref={fileInputRef} type="file" multiple accept={ACCEPT}
               style={{ display: 'none' }}
               onChange={e => e.target.files && addFiles(Array.from(e.target.files))}
             />
+            <ModelSelector value={provider} onChange={onProviderChange} />
             <span style={{ fontSize: '0.6rem', color: '#3a2e10' }}>
               {dragging ? 'DROP TO ATTACH' : '⌘⏎ to send'}
             </span>

@@ -1,5 +1,9 @@
-// Lightweight in-memory vector store using cosine similarity on TF-IDF style embeddings.
-// In production, replace with LanceDB WASM or @xenova/transformers for real embeddings.
+// Memory store with IndexedDB persistence via idb-keyval.
+// Falls back to in-memory array if IndexedDB is unavailable.
+import { get, set } from 'idb-keyval';
+
+const MEM_KEY = 'mathx-memory-v1';
+const MAX_ENTRIES = 200;
 
 interface MemoryEntry {
   id: string;
@@ -9,7 +13,7 @@ interface MemoryEntry {
   timestamp: number;
 }
 
-const store: MemoryEntry[] = [];
+let cache: MemoryEntry[] | null = null;
 
 function tokenize(text: string): string[] {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(t => t.length > 2);
@@ -21,11 +25,29 @@ function tfidfScore(queryTokens: string[], entry: MemoryEntry): number {
   return matches / Math.max(entry.tokens.length, queryTokens.length, 1);
 }
 
+async function getCache(): Promise<MemoryEntry[]> {
+  if (cache !== null) return cache;
+  try {
+    const stored = await get<MemoryEntry[]>(MEM_KEY);
+    cache = stored || [];
+  } catch {
+    cache = [];
+  }
+  return cache;
+}
+
+async function persistCache(): Promise<void> {
+  try {
+    await set(MEM_KEY, cache);
+  } catch { /* silently fail if IndexedDB unavailable */ }
+}
+
 export function useMemory() {
   const search = async (query: string, topK = 5): Promise<Array<{ source: string; text: string; score: number }>> => {
-    if (store.length === 0) return [];
+    const entries = await getCache();
+    if (entries.length === 0) return [];
     const qTokens = tokenize(query);
-    return store
+    return entries
       .map(e => ({ source: e.id, text: e.response.slice(0, 400), score: tfidfScore(qTokens, e) }))
       .filter(r => r.score > 0)
       .sort((a, b) => b.score - a.score)
@@ -33,6 +55,7 @@ export function useMemory() {
   };
 
   const storeEntry = async (query: string, response: string) => {
+    const entries = await getCache();
     const entry: MemoryEntry = {
       id: `mem-${Date.now()}`,
       query,
@@ -40,8 +63,10 @@ export function useMemory() {
       tokens: tokenize(query + ' ' + response),
       timestamp: Date.now(),
     };
-    store.push(entry);
-    if (store.length > 200) store.shift(); // rolling window
+    entries.push(entry);
+    if (entries.length > MAX_ENTRIES) entries.shift();
+    cache = entries;
+    await persistCache();
   };
 
   return { search, store: storeEntry };

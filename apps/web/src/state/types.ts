@@ -33,6 +33,7 @@ export interface Message {
   content: string;
   files?: string[];
   streaming?: boolean;
+  provider?: 'claude' | 'ollama' | 'qwen';
   execution?: {
     stdout?: string;
     error?: string;
@@ -54,6 +55,7 @@ export interface Plan {
   domain?: string;
   complexity?: string;
   summary?: string;
+  chain?: string[];
 }
 
 export interface Mode {
@@ -68,6 +70,8 @@ export interface Session {
   id: string;
   name: string;
   mode: string;
+  domain?: string;
+  parentId?: string;
   messages: Message[];
   createdAt: number;
   updatedAt: number;

@@ -1,9 +1,15 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { MathRenderer } from './MathRenderer';
 import { ChartView } from './ChartView';
 import { ExportButton } from './ExportButton';
 import { ParameterSliders } from './ParameterSliders';
 import type { Message, Mode } from '../state/types';
+
+const PROVIDER_BADGE: Record<string, { icon: string; label: string; color: string }> = {
+  claude: { icon: '☁', label: 'Claude',       color: '#00c8ff' },
+  ollama: { icon: '⚡', label: 'DeepSeek-R1',  color: '#7cff6b' },
+  qwen:   { icon: '∂', label: 'Qwen2.5-Math', color: '#e05aff' },
+};
 
 const QUICK_PROBES = [
   'Find the cross-domain analogue', 'What symmetry underlies this?',
@@ -75,37 +81,29 @@ export function ResultsPane({ messages, loading, error, modeObj, compute }: Resu
   );
 }
 
-function MessageBubble({
-  msg, modeObj, compute,
-}: { msg: Message; modeObj: Mode; compute: (code: string) => Promise<string> }) {
+function MessageBubble({ msg, modeObj, compute }: { msg: Message; modeObj: Mode; compute: (code: string) => Promise<string> }) {
   const isUser = msg.role === 'user';
   const [liveStdout, setLiveStdout] = useState<string | null>(null);
-  const [liveChart, setLiveChart] = useState<any>(null);
+  const [liveChart, setLiveChart]   = useState<any>(null);
   const [sliderRunning, setSliderRunning] = useState(false);
 
   const handleParamsChange = useCallback(async (params: Record<string, number>) => {
-    if (!msg.execution?.stdout) return;
+    if (!msg.execution?.code) return;
     setSliderRunning(true);
-    // Inject updated param values at top of code
-    const injection = Object.entries(params).map(([k, v]) => `${k} = ${v}`).join('\n');
-    const updatedCode = injection + '\n\n' + msg.execution.stdout;
+    const injection  = Object.entries(params).map(([k, v]) => `${k} = ${v}`).join('\n');
+    const updatedCode = injection + '\n\n' + msg.execution.code;
     try {
       const result = await compute(updatedCode);
       setLiveStdout(result);
-      try {
-        const parsed = JSON.parse(result);
-        if (parsed?.chart) setLiveChart(parsed.chart);
-      } catch { /* non-JSON output */ }
-    } catch (e) {
-      console.warn('Slider re-run error:', e);
-    } finally {
-      setSliderRunning(false);
-    }
-  }, [msg.execution?.stdout, compute]);
+      try { const p = JSON.parse(result); if (p?.chart) setLiveChart(p.chart); } catch { /* non-JSON */ }
+    } catch (e) { console.warn('Slider re-run error:', e); }
+    finally { setSliderRunning(false); }
+  }, [msg.execution?.code, compute]);
 
-  const chart = liveChart || msg.execution?.parsed?.chart;
-  const table = msg.execution?.parsed?.table;
+  const chart  = liveChart || (msg.execution?.parsed as any)?.chart;
+  const table  = (msg.execution?.parsed as any)?.table;
   const stdout = liveStdout || msg.execution?.stdout;
+  const badge  = msg.provider ? PROVIDER_BADGE[msg.provider] : null;
 
   return (
     <div style={{
@@ -143,13 +141,8 @@ function MessageBubble({
           </div>
         ) : (
           <div>
-            {/* Chart */}
-            {chart && <ChartView spec={chart} />}
-
-            {/* Table */}
+            {chart && <ChartView data={chart} />}
             {table && <TableView data={table} />}
-
-            {/* Code stdout (when no chart/table) */}
             {stdout && !chart && !table && (
               <pre style={{
                 margin: '0 0 10px', padding: '8px 12px',
@@ -160,46 +153,38 @@ function MessageBubble({
                 whiteSpace: 'pre-wrap', wordBreak: 'break-word',
               }}>{stdout}</pre>
             )}
-
-            {/* Parameter sliders for code output */}
-            {msg.execution?.stdout && (
+            {msg.execution?.code && (
               <ParameterSliders
-                code={msg.execution.stdout}
+                code={msg.execution.code}
                 onParamsChange={handleParamsChange}
                 accent={modeObj.color}
                 running={sliderRunning}
               />
             )}
-
-            {/* Main text */}
-            <MathRenderer
-              text={msg.content}
-              accent={modeObj.color}
-              streaming={msg.streaming ?? false}
-            />
-
-            {/* Plan metadata */}
-            {msg.plan && (
-              <div style={{
-                marginTop: 10, fontSize: '0.6rem', color: '#3a2e10',
-                fontFamily: "'JetBrains Mono', monospace",
-                display: 'flex', gap: 8, flexWrap: 'wrap',
-              }}>
-                <span>engine: {msg.plan.engine}</span>
-                <span>domain: {(msg.plan as any).domain ?? 'general'}</span>
-                <span>complexity: {msg.plan.complexity}</span>
-              </div>
-            )}
-
-            {/* Export toolbar */}
+            <MathRenderer text={msg.content} accent={modeObj.color} streaming={msg.streaming ?? false} />
             <div style={{
-              marginTop: 10,
-              paddingTop: 8,
-              borderTop: '1px solid #1a1408',
-              display: 'flex',
-              gap: 6,
+              marginTop: 10, paddingTop: 8, borderTop: '1px solid #1a1408',
+              display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',
             }}>
               <ExportButton content={msg.content} accent={modeObj.color} />
+              {badge && (
+                <div style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                  fontSize: '0.58rem', color: badge.color,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  padding: '1px 7px', background: '#0e0c07',
+                  border: `1px solid ${badge.color}33`, borderRadius: 10,
+                }}>
+                  {badge.icon} {badge.label}
+                </div>
+              )}
+              {msg.plan && (
+                <div style={{ fontSize: '0.58rem', color: '#3a2e10', fontFamily: "'JetBrains Mono', monospace", display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span>engine: {msg.plan.engine}</span>
+                  <span>complexity: {msg.plan.complexity}</span>
+                  {msg.plan.chain && <span>chain: [{msg.plan.chain.join(' → ')}]</span>}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -221,8 +206,7 @@ function LoadingIndicator({ modeObj }: { modeObj: Mode }) {
     synergy: 'MAPPING CONNECTIONS', hypothesis: 'GENERATING HYPOTHESIS',
     formula: 'SYNTHESIZING FORMULA', files: 'ANALYZING CONTENT',
     probability: 'COMPUTING DISTRIBUTION', scientist: 'REASONING',
-    solve: 'SOLVING', formula_lab: 'BUILDING FORMULA',
-    domain: 'CONSULTING SPECIALIST',
+    solve: 'SOLVING', domain: 'CONSULTING SPECIALIST',
   };
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', animation: 'msgIn 0.2s ease-out' }}>
@@ -255,18 +239,11 @@ function LoadingIndicator({ modeObj }: { modeObj: Mode }) {
 function TableView({ data }: { data: { columns: string[]; rows: any[][] } }) {
   return (
     <div style={{ overflowX: 'auto', marginBottom: 10 }}>
-      <table style={{
-        borderCollapse: 'collapse', fontSize: '0.73rem',
-        fontFamily: "'JetBrains Mono', monospace",
-        color: '#c8bfa8', width: '100%',
-      }}>
+      <table style={{ borderCollapse: 'collapse', fontSize: '0.73rem', fontFamily: "'JetBrains Mono', monospace", color: '#c8bfa8', width: '100%' }}>
         <thead>
           <tr>
-            {data.columns?.map((c) => (
-              <th key={c} style={{
-                padding: '5px 10px', borderBottom: '1px solid #2a2010',
-                color: '#f0a500', textAlign: 'left',
-              }}>{c}</th>
+            {data.columns?.map(c => (
+              <th key={c} style={{ padding: '5px 10px', borderBottom: '1px solid #2a2010', color: '#f0a500', textAlign: 'left' }}>{c}</th>
             ))}
           </tr>
         </thead>
@@ -274,10 +251,7 @@ function TableView({ data }: { data: { columns: string[]; rows: any[][] } }) {
           {data.rows?.slice(0, 30).map((row, i) => (
             <tr key={i}>
               {row.map((cell, j) => (
-                <td key={j} style={{
-                  padding: '3px 10px', borderBottom: '1px solid #1a1408',
-                  color: '#a89870',
-                }}>{String(cell)}</td>
+                <td key={j} style={{ padding: '3px 10px', borderBottom: '1px solid #1a1408', color: '#a89870' }}>{String(cell)}</td>
               ))}
             </tr>
           ))}
