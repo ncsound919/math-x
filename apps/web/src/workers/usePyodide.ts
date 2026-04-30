@@ -4,6 +4,7 @@ export interface PyodideStatus {
   ready: boolean;
   loading: boolean;
   kernelCleared: boolean;
+  extraPackages: string[];
 }
 
 const WORKER_SRC = `
@@ -11,13 +12,13 @@ importScripts('https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js');
 
 let pyodide = null;
 let isReady = false;
+const loadedExtras = new Set();
 
 async function boot() {
   pyodide = await loadPyodide({
     indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/',
   });
   await pyodide.loadPackagesFromImports('import numpy, scipy, sympy, json, io, sys');
-  // Persistent stdout capture helper
   pyodide.runPython(\`
 import sys, io
 class _CaptureIO(io.StringIO):
@@ -30,14 +31,28 @@ class _CaptureIO(io.StringIO):
 boot().catch(e => self.postMessage({ type: 'error', id: 'boot', error: String(e) }));
 
 self.onmessage = async (e) => {
-  const { type, id, code } = e.data;
+  const { type, id, code, packages } = e.data;
+
+  if (type === 'load-extra') {
+    const toLoad = (packages || []).filter(p => !loadedExtras.has(p));
+    if (toLoad.length === 0) {
+      self.postMessage({ type: 'extra-loaded', id, loaded: [] });
+      return;
+    }
+    try {
+      await pyodide.loadPackage(toLoad);
+      toLoad.forEach(p => loadedExtras.add(p));
+      self.postMessage({ type: 'extra-loaded', id, loaded: toLoad });
+    } catch(err) {
+      self.postMessage({ type: 'error', id, error: String(err) });
+    }
+    return;
+  }
 
   if (type === 'clear') {
     try {
-      // Wipe namespace but keep builtins
       pyodide.runPython(\`
 import builtins as _b
-import sys as _s
 _keep = {'__name__', '__doc__', '__package__', '__loader__', '__spec__', '__builtins__'}
 _g = globals()
 for _k in list(_g.keys()):
@@ -57,15 +72,12 @@ for _k in list(_g.keys()):
       return;
     }
     try {
-      // Redirect stdout
       pyodide.runPython(\`
 import sys, io
 _stdout_capture = io.StringIO()
 sys.stdout = _stdout_capture
 \`);
-
       await pyodide.runPythonAsync(code);
-
       const out = pyodide.runPython(\`
 sys.stdout = sys.__stdout__
 _stdout_capture.getvalue()
@@ -81,7 +93,7 @@ _stdout_capture.getvalue()
 
 export function usePyodide() {
   const [status, setStatus] = useState<PyodideStatus>({
-    ready: false, loading: true, kernelCleared: false,
+    ready: false, loading: true, kernelCleared: false, extraPackages: [],
   });
   const workerRef = useRef<Worker | null>(null);
   const pendingRef = useRef<Map<string, {
@@ -98,9 +110,13 @@ export function usePyodide() {
     worker.onmessage = (e: MessageEvent) => {
       const msg = e.data;
       if (msg.type === 'ready') {
-        setStatus({ ready: true, loading: false, kernelCleared: false });
+        setStatus({ ready: true, loading: false, kernelCleared: false, extraPackages: [] });
       } else if (msg.type === 'result') {
         pendingRef.current.get(msg.id)?.resolve(msg.stdout);
+        pendingRef.current.delete(msg.id);
+      } else if (msg.type === 'extra-loaded') {
+        setStatus(s => ({ ...s, extraPackages: [...s.extraPackages, ...msg.loaded] }));
+        pendingRef.current.get(msg.id)?.resolve(msg.loaded.join(','));
         pendingRef.current.delete(msg.id);
       } else if (msg.type === 'error') {
         pendingRef.current.get(msg.id)?.reject(msg.error);
@@ -115,7 +131,7 @@ export function usePyodide() {
 
     worker.onerror = (e) => {
       console.error('Pyodide worker error:', e);
-      setStatus({ ready: false, loading: false, kernelCleared: false });
+      setStatus({ ready: false, loading: false, kernelCleared: false, extraPackages: [] });
     };
 
     return () => {
@@ -134,6 +150,16 @@ export function usePyodide() {
     });
   }, [status.ready]);
 
+  const loadExtra = useCallback((packages: string[]): Promise<string> => {
+    const worker = workerRef.current;
+    if (!worker) return Promise.resolve('');
+    const id = `load-${Date.now()}`;
+    return new Promise((resolve, reject) => {
+      pendingRef.current.set(id, { resolve, reject });
+      worker.postMessage({ type: 'load-extra', id, packages });
+    });
+  }, []);
+
   const clearKernel = useCallback((): Promise<void> => {
     const worker = workerRef.current;
     if (!worker) return Promise.resolve();
@@ -144,5 +170,5 @@ export function usePyodide() {
     });
   }, []);
 
-  return { status, compute, clearKernel };
+  return { status, compute, loadExtra, clearKernel };
 }

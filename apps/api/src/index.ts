@@ -13,6 +13,7 @@ import { bioRouter }        from './routes/bio';
 import { hypothesisRouter } from './routes/hypothesis';
 import { analogiesRouter }  from './routes/analogies';
 import domainRouter         from './routes/domain';
+import { modelsRouter }     from './routes/models';
 
 dotenv.config();
 
@@ -47,13 +48,14 @@ app.use('/api/ocr',        ocrRouter);
 app.use('/api/bio',        bioRouter);
 app.use('/api/hypothesis', hypothesisRouter);
 app.use('/api/analogies',  analogiesRouter);
+app.use('/api/models',     modelsRouter);
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0.3.0' });
+  res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0.4.0' });
 });
 
 app.listen(PORT, () => {
-  console.log(`Math X API v0.3 running on port ${PORT}`);
+  console.log(`Math X API v0.4 running on port ${PORT}`);
 });
 
 export default app;
