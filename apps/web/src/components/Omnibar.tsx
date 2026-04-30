@@ -1,153 +1,218 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect, DragEvent } from 'react';
+import { useOCR } from '../utils/useOCR';
 import type { Mode } from '../state/types';
 
 interface OmnibarProps {
-  modeObj: Mode;
   onSend: (text: string, files: File[]) => void;
   loading: boolean;
-  files: File[];
-  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  onStop?: () => void;
+  modeObj: Mode;
 }
 
-const QUICK_PROBES = [
-  'Find the cross-domain analogue',
-  'What symmetry underlies this?',
-  'Run a Monte Carlo simulation',
-  'Generalize this formula',
-  'What is the information-theoretic view?',
-];
+const ACCEPT = '.pdf,.csv,.json,.txt,.py,.ts,.fasta,.fa,.fastq,.fq,.vcf,.bed,.gff,.gff3,.gtf,.pdb,.parquet,.png,.jpg,.jpeg,.gif,.webp';
 
-export function Omnibar({ modeObj, onSend, loading, files, setFiles }: OmnibarProps) {
+export function Omnibar({ onSend, loading, onStop, modeObj }: OmnibarProps) {
   const [input, setInput] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
-  const folderRef = useRef<HTMLInputElement>(null);
-  const taRef = useRef<HTMLTextAreaElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [ocrPreview, setOcrPreview] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { extractLatex, loading: ocrLoading, result: ocrResult, error: ocrError } = useOCR();
 
-  const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (!loading && (input.trim() || files.length > 0)) {
-        onSend(input, files);
-        setInput('');
+  // Listen for workflow template injection from LeftDrawer
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'SET_INPUT') {
+        setInput(e.data.text || '');
+        textareaRef.current?.focus();
       }
-    }
-  };
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
 
-  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selected = Array.from(e.target.files || []);
-    setFiles(prev => [...prev, ...selected].slice(0, 20));
-    e.target.value = '';
-  };
+  // Auto-inject OCR result into input when ready
+  useEffect(() => {
+    if (ocrResult?.latex) {
+      setInput(prev => prev ? `${prev}\n\n${ocrResult.latex}` : ocrResult.latex);
+      setOcrPreview(null);
+    }
+  }, [ocrResult]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  }, [input]);
+
+  const handleSend = useCallback(() => {
+    const text = input.trim();
+    if (!text && files.length === 0) return;
+    onSend(text, files);
+    setInput('');
+    setFiles([]);
+    setOcrPreview(null);
+  }, [input, files, onSend]);
+
+  const addFiles = useCallback(async (incoming: File[]) => {
+    const images = incoming.filter(f => f.type.startsWith('image/'));
+    const nonImages = incoming.filter(f => !f.type.startsWith('image/'));
+
+    // Non-image files go straight to the file list
+    setFiles(prev => [
+      ...prev,
+      ...nonImages.filter(f => !prev.find(e => e.name === f.name)),
+    ]);
+
+    // Image files → OCR
+    for (const img of images) {
+      // Show preview
+      const url = URL.createObjectURL(img);
+      setOcrPreview(url);
+      await extractLatex(img);
+      URL.revokeObjectURL(url);
+    }
+  }, [extractLatex]);
+
+  const onDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    addFiles(Array.from(e.dataTransfer.files));
+  }, [addFiles]);
+
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setDragging(true); };
+  const onDragLeave = () => setDragging(false);
+
+  const removeFile = (name: string) => setFiles(prev => prev.filter(f => f.name !== name));
+
+  const { color } = modeObj;
 
   return (
-    <div style={{
-      padding: '10px 20px 14px',
-      borderTop: '1px solid #1e1808',
-      background: 'rgba(6,4,0,0.98)',
-      backdropFilter: 'blur(12px)',
-      position: 'sticky', bottom: 0, zIndex: 20, flexShrink: 0,
-    }}>
-      <div style={{ maxWidth: 860, margin: '0 auto' }}>
+    <div style={{ padding: '0 20px 16px', flexShrink: 0 }}>
+      {/* OCR preview */}
+      {ocrPreview && (
+        <div style={{
+          marginBottom: 8, padding: '8px 12px',
+          background: '#0d0b00', border: `1px solid ${color}44`,
+          borderRadius: 6, display: 'flex', gap: 10, alignItems: 'center',
+        }}>
+          <img src={ocrPreview} alt="OCR preview" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 4, background: '#000' }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '0.6rem', color: color, marginBottom: 2 }}>EXTRACTING LATEX…</div>
+            {ocrLoading && (
+              <div style={{ width: '100%', height: 3, background: '#1a1408', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: '60%', background: color, borderRadius: 2, animation: 'scan 1s ease-in-out infinite alternate' }} />
+              </div>
+            )}
+            {ocrError && <div style={{ fontSize: '0.65rem', color: '#ff6b35' }}>{ocrError}</div>}
+          </div>
+        </div>
+      )}
 
-        {/* Quick probes */}
-        <div style={{ display: 'flex', gap: 5, overflowX: 'auto', marginBottom: 8, paddingBottom: 2 }}>
-          {QUICK_PROBES.map(p => (
-            <button key={p}
-              onClick={() => setInput(prev => prev ? `${prev}. ${p}` : p)}
-              style={{
-                padding: '3px 10px', background: '#0a0800',
-                border: '1px solid #2a2010', borderRadius: 20,
-                color: '#4a3820', fontSize: '0.62rem',
-                whiteSpace: 'nowrap', cursor: 'pointer',
-                flexShrink: 0, transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { const t = e.target as HTMLButtonElement; t.style.color = modeObj.color; t.style.borderColor = modeObj.color + '44'; }}
-              onMouseLeave={e => { const t = e.target as HTMLButtonElement; t.style.color = '#4a3820'; t.style.borderColor = '#2a2010'; }}
-            >{p}</button>
+      {/* File chips */}
+      {files.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
+          {files.map(f => (
+            <span key={f.name} style={{
+              fontSize: '0.65rem', color: '#c8bfa8',
+              background: '#1a1408', border: '1px solid #3a2e10',
+              borderRadius: 4, padding: '2px 8px',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+              📎 {f.name}
+              <button onClick={() => removeFile(f.name)}
+                style={{ background: 'none', border: 'none', color: '#6a5830', cursor: 'pointer', padding: 0, fontSize: '0.7rem', lineHeight: 1 }}>×</button>
+            </span>
           ))}
         </div>
+      )}
 
-        {/* Attached file pills */}
-        {files.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 7 }}>
-            {files.map((f, i) => (
-              <span key={i} style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                background: '#1a1408', border: '1px solid #3a2e10',
-                borderRadius: 5, padding: '3px 9px',
-                fontSize: '0.7rem', color: '#c8a050',
-                fontFamily: "'JetBrains Mono', monospace",
-              }}>
-                {f.type.startsWith('image/') ? '🖼' : '📄'} {f.name}
-                <button onClick={() => setFiles(prev => prev.filter((_, j) => j !== i))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#5a4820', padding: 0, fontSize: '0.75rem' }}>✕</button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Mode indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-          <span style={{ fontSize: '0.6rem', color: modeObj.color, letterSpacing: '0.12em' }}>
-            {modeObj.icon} {modeObj.label.toUpperCase()} · {modeObj.desc}
-          </span>
-        </div>
-
-        {/* Input box */}
-        <div style={{
-          display: 'flex', gap: 7, alignItems: 'flex-end',
+      {/* Main input */}
+      <div
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        style={{
           background: '#0a0800',
-          border: `1px solid #2a2010`,
-          borderRadius: 10, padding: '8px 10px',
-        }}>
-          {/* File attach */}
-          <button title="Attach files" onClick={() => fileRef.current?.click()}
-            style={{ width: 28, height: 28, borderRadius: 5, flexShrink: 0, background: '#0e0c07', border: '1px solid #2a2010', color: '#4a3820', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 1 }}>
-            📎
-          </button>
-          {/* Folder attach */}
-          <button title="Ingest folder" onClick={() => folderRef.current?.click()}
-            style={{ width: 28, height: 28, borderRadius: 5, flexShrink: 0, background: '#0e0c07', border: '1px solid #2a2010', color: '#4a3820', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 1 }}>
-            ◫
-          </button>
+          border: `1px solid ${dragging ? color : '#2a2010'}`,
+          borderRadius: 10,
+          padding: '10px 14px',
+          transition: 'border-color 0.15s',
+          boxShadow: dragging ? `0 0 16px ${color}22` : 'none',
+        }}
+      >
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder={dragging ? 'Drop files here…' : 'Ask a mathematical or bioinformatics question, drop a file, or paste a formula…'}
+          rows={1}
+          style={{
+            width: '100%', background: 'none', border: 'none', outline: 'none',
+            color: '#c8bfa8', fontSize: '0.88rem', lineHeight: 1.6,
+            resize: 'none', fontFamily: 'inherit', minHeight: 36,
+          }}
+        />
 
-          <input ref={fileRef} type="file" accept=".pdf,.csv,.json,.parquet,image/*,.py,.ts,.js,.md,.txt" multiple style={{ display: 'none' }} onChange={handleFileAdd} />
-          <input ref={folderRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileAdd}
-            {...{ webkitdirectory: 'true', directory: 'true' } as any} />
+        {/* Toolbar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {/* File picker */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              title="Attach file (PDF, CSV, FASTA, image…)"
+              style={{
+                background: 'none', border: '1px solid #2a2010', borderRadius: 4,
+                color: '#6a5830', cursor: 'pointer', fontSize: '0.75rem', padding: '3px 8px',
+              }}
+            >📎</button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={ACCEPT}
+              style={{ display: 'none' }}
+              onChange={e => e.target.files && addFiles(Array.from(e.target.files))}
+            />
+            <span style={{ fontSize: '0.6rem', color: '#3a2e10' }}>
+              {dragging ? 'DROP TO ATTACH' : '⌘⏎ to send'}
+            </span>
+          </div>
 
-          <textarea
-            ref={taRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder={`${modeObj.label} query... (↵ send, ⇧↵ newline)`}
-            rows={1}
-            style={{
-              flex: 1, background: 'transparent', border: 'none',
-              color: '#c8bfa8', fontSize: '0.88rem', lineHeight: 1.65,
-              minHeight: 22, maxHeight: 130,
-              fontFamily: "'DM Mono', monospace", letterSpacing: '0.01em',
-            }}
-            onInput={e => {
-              const t = e.target as HTMLTextAreaElement;
-              t.style.height = 'auto';
-              t.style.height = Math.min(t.scrollHeight, 130) + 'px';
-            }}
-          />
-
-          <button
-            onClick={() => { if (!loading && (input.trim() || files.length > 0)) { onSend(input, files); setInput(''); } }}
-            disabled={loading || (!input.trim() && files.length === 0)}
-            style={{
-              width: 30, height: 30, borderRadius: 6, flexShrink: 0,
-              background: `linear-gradient(135deg, ${modeObj.color}cc, ${modeObj.color}88)`,
-              border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '0.9rem', color: '#060400', fontWeight: 700,
-              marginBottom: 1,
-              opacity: loading || (!input.trim() && files.length === 0) ? 0.35 : 1,
-              transition: 'all 0.15s',
-            }}>↑</button>
+          {loading ? (
+            <button
+              onClick={onStop}
+              style={{
+                background: '#1a0800', border: '1px solid #ff6b3555',
+                color: '#ff6b35', borderRadius: 6, padding: '6px 16px',
+                cursor: 'pointer', fontSize: '0.72rem',
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >■ STOP</button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() && files.length === 0}
+              style={{
+                background: input.trim() || files.length > 0 ? `${color}22` : '#0a0800',
+                border: `1px solid ${input.trim() || files.length > 0 ? color + '88' : '#2a2010'}`,
+                color: input.trim() || files.length > 0 ? color : '#3a2e10',
+                borderRadius: 6, padding: '6px 18px',
+                cursor: input.trim() || files.length > 0 ? 'pointer' : 'default',
+                fontSize: '0.72rem', transition: 'all 0.15s',
+                fontFamily: "'JetBrains Mono', monospace",
+              }}
+            >SEND ▶</button>
+          )}
         </div>
       </div>
     </div>

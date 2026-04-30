@@ -1,247 +1,255 @@
-// ProofTree — interactive SVG proof-tree canvas.
-// Nodes are mathematical statements; edges are deduction steps.
-// SymPy verification badges: green = verified, red = failed, gray = unverifiable.
-// Users can add nodes, connect them, and run SymPy on any step.
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import ReactFlow, {
+  Node, Edge, addEdge, Connection,
+  Background, Controls, MiniMap,
+  useNodesState, useEdgesState,
+  Handle, Position, NodeProps,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
 
 export interface ProofNode {
   id: string;
-  label: string;       // the mathematical statement / expression
-  x: number;
-  y: number;
-  status: 'unverified' | 'verified' | 'failed' | 'unverifiable';
-  note?: string;
-}
-
-export interface ProofEdge {
-  from: string;
-  to: string;
-  operation?: string;
+  statement: string;
+  type: 'hypothesis' | 'step' | 'conclusion' | 'dead_end';
+  verified?: boolean | null; // true=✓, false=✗, null=unverified
+  sympyCode?: string;
 }
 
 interface ProofTreeProps {
-  initialNodes?: ProofNode[];
-  initialEdges?: ProofEdge[];
-  accentColor?: string;
-  onRequestVerify?: (from: string, to: string) => void;
+  accent?: string;
+  onNodeVerify?: (nodeId: string, statement: string) => Promise<boolean | null>;
 }
 
-const STATUS_COLORS: Record<ProofNode['status'], string> = {
-  unverified:  '#4a3820',
-  verified:    '#7cff6b',
-  failed:      '#ff6b35',
-  unverifiable:'#5a4a70',
+const NODE_COLORS: Record<ProofNode['type'], string> = {
+  hypothesis:  '#3a2f00',
+  step:        '#0a1a2a',
+  conclusion:  '#0a2a0a',
+  dead_end:    '#2a0a0a',
 };
 
-const W = 190, H = 60;
+const NODE_BORDERS: Record<ProofNode['type'], string> = {
+  hypothesis:  '#f0a500',
+  step:        '#4a9eff',
+  conclusion:  '#7cff6b',
+  dead_end:    '#ff4444',
+};
 
-export function ProofTree({
-  initialNodes = [],
-  initialEdges = [],
-  accentColor = '#f0a500',
-  onRequestVerify,
-}: ProofTreeProps) {
-  const [nodes, setNodes] = useState<ProofNode[]>(initialNodes);
-  const [edges, setEdges] = useState<ProofEdge[]>(initialEdges);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [dragging, setDragging] = useState<{ id: string; ox: number; oy: number } | null>(null);
-  const [connecting, setConnecting] = useState<string | null>(null);
-  const [newLabel, setNewLabel] = useState('');
-  const svgRef = useRef<SVGSVGElement>(null);
+function verifiedColor(v: boolean | null | undefined): string {
+  if (v === true)  return '#7cff6b';
+  if (v === false) return '#ff4444';
+  return '#6a5a3a';
+}
 
-  const addNode = useCallback(() => {
-    if (!newLabel.trim()) return;
-    const id = `node_${Date.now()}`;
-    setNodes(prev => [...prev, {
-      id, label: newLabel.trim(),
-      x: 80 + Math.random() * 400,
-      y: 80 + Math.random() * 200,
-      status: 'unverified',
-    }]);
-    setNewLabel('');
-  }, [newLabel]);
-
-  const deleteNode = useCallback((id: string) => {
-    setNodes(prev => prev.filter(n => n.id !== id));
-    setEdges(prev => prev.filter(e => e.from !== id && e.to !== id));
-    if (selected === id) setSelected(null);
-  }, [selected]);
-
-  const handleMouseDown = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    if (connecting) {
-      if (connecting !== id) {
-        const exists = edges.some(ed => ed.from === connecting && ed.to === id);
-        if (!exists) setEdges(prev => [...prev, { from: connecting, to: id, operation: '' }]);
-      }
-      setConnecting(null);
-      return;
-    }
-    setSelected(id);
-    const svg = svgRef.current!.getBoundingClientRect();
-    setDragging({ id, ox: e.clientX - svg.left, oy: e.clientY - svg.top });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!dragging) return;
-    const svg = svgRef.current!.getBoundingClientRect();
-    const x = e.clientX - svg.left;
-    const y = e.clientY - svg.top;
-    const node = nodes.find(n => n.id === dragging.id)!;
-    const dx = x - dragging.ox;
-    const dy = y - dragging.oy;
-    setNodes(prev => prev.map(n => n.id === dragging.id
-      ? { ...n, x: n.x + dx, y: n.y + dy } : n));
-    setDragging({ ...dragging, ox: x, oy: y });
-  };
-
-  const cycleStatus = (id: string) => {
-    const order: ProofNode['status'][] = ['unverified', 'verified', 'failed', 'unverifiable'];
-    setNodes(prev => prev.map(n => {
-      if (n.id !== id) return n;
-      return { ...n, status: order[(order.indexOf(n.status) + 1) % order.length] };
-    }));
-  };
-
-  const svgH = Math.max(300, ...nodes.map(n => n.y + H + 30));
-  const svgW = Math.max(600, ...nodes.map(n => n.x + W + 30));
+// Custom node renderer
+function ProofNodeComponent({ data, id }: NodeProps) {
+  const node = data as ProofNode & { onVerify: (id: string) => void; onDelete: (id: string) => void; onTypeChange: (id: string, t: ProofNode['type']) => void };
+  const border = NODE_BORDERS[node.type] || '#4a3820';
+  const bg = NODE_COLORS[node.type] || '#0a0800';
 
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: '0.58rem', color: accentColor, letterSpacing: '0.12em' }}>PROOF TREE</span>
-        <input
-          value={newLabel}
-          onChange={e => setNewLabel(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && addNode()}
-          placeholder="Statement or expression…"
+    <div style={{
+      background: bg,
+      border: `1.5px solid ${border}`,
+      borderRadius: 8,
+      padding: '10px 14px',
+      minWidth: 220,
+      maxWidth: 320,
+      boxShadow: `0 0 12px ${border}22`,
+      position: 'relative',
+    }}>
+      <Handle type="target" position={Position.Top} style={{ background: border, border: 'none', width: 8, height: 8 }} />
+
+      {/* Type badge */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <select
+          value={node.type}
+          onChange={e => node.onTypeChange(id, e.target.value as ProofNode['type'])}
+          style={{ background: 'transparent', border: 'none', color: border, fontSize: '0.6rem', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace" }}
+        >
+          <option value="hypothesis">HYPOTHESIS</option>
+          <option value="step">STEP</option>
+          <option value="conclusion">CONCLUSION</option>
+          <option value="dead_end">DEAD END</option>
+        </select>
+        <span style={{ fontSize: '0.75rem', color: verifiedColor(node.verified) }}>
+          {node.verified === true ? '✓' : node.verified === false ? '✗' : '○'}
+        </span>
+      </div>
+
+      {/* Statement */}
+      <div style={{
+        fontSize: '0.78rem',
+        color: '#c8bfa8',
+        lineHeight: 1.5,
+        fontFamily: "'JetBrains Mono', monospace",
+        wordBreak: 'break-word',
+      }}>
+        {node.statement}
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <button
+          onClick={() => node.onVerify(id)}
           style={{
-            flex: 1, background: '#0a0800', border: `1px solid ${accentColor}44`,
-            borderRadius: 5, padding: '4px 8px', color: '#c8bfa8',
-            fontSize: '0.72rem', fontFamily: "'JetBrains Mono', monospace",
+            fontSize: '0.58rem', background: '#1a2a1a', border: '1px solid #2a4a2a',
+            color: '#7cff6b', borderRadius: 3, padding: '2px 7px', cursor: 'pointer',
           }}
-        />
-        <button onClick={addNode} style={{
-          padding: '4px 10px', background: `${accentColor}22`,
-          border: `1px solid ${accentColor}`, borderRadius: 5,
-          color: accentColor, fontSize: '0.65rem', cursor: 'pointer',
-        }}>+ Node</button>
-        {selected && (
-          <>
-            <button onClick={() => { setConnecting(selected); setSelected(null); }} style={{
-              padding: '4px 10px', background: '#0a0800', border: '1px solid #00c8ff44',
-              borderRadius: 5, color: '#00c8ff', fontSize: '0.65rem', cursor: 'pointer',
-            }}>Connect →</button>
-            <button onClick={() => deleteNode(selected)} style={{
-              padding: '4px 10px', background: '#0a0800', border: '1px solid #ff6b3544',
-              borderRadius: 5, color: '#ff6b35', fontSize: '0.65rem', cursor: 'pointer',
-            }}>Delete</button>
-          </>
-        )}
-        {connecting && (
-          <span style={{ fontSize: '0.62rem', color: '#e05aff' }}>
-            Click target node…
+        >VERIFY</button>
+        <button
+          onClick={() => node.onDelete(id)}
+          style={{
+            fontSize: '0.58rem', background: '#2a1a1a', border: '1px solid #4a2a2a',
+            color: '#ff6b35', borderRadius: 3, padding: '2px 7px', cursor: 'pointer',
+          }}
+        >× DELETE</button>
+      </div>
+
+      <Handle type="source" position={Position.Bottom} style={{ background: border, border: 'none', width: 8, height: 8 }} />
+    </div>
+  );
+}
+
+const nodeTypes = { proofNode: ProofNodeComponent };
+
+let idCounter = 100;
+
+export function ProofTree({ accent = '#f0a500', onNodeVerify }: ProofTreeProps) {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [newStatement, setNewStatement] = useState('');
+  const [newType, setNewType] = useState<ProofNode['type']>('step');
+
+  const handleVerify = useCallback(async (nodeId: string) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node || !onNodeVerify) return;
+    const result = await onNodeVerify(nodeId, node.data.statement);
+    setNodes(ns => ns.map(n =>
+      n.id === nodeId ? { ...n, data: { ...n.data, verified: result } } : n
+    ));
+  }, [nodes, onNodeVerify, setNodes]);
+
+  const handleDelete = useCallback((nodeId: string) => {
+    setNodes(ns => ns.filter(n => n.id !== nodeId));
+    setEdges(es => es.filter(e => e.source !== nodeId && e.target !== nodeId));
+  }, [setNodes, setEdges]);
+
+  const handleTypeChange = useCallback((nodeId: string, type: ProofNode['type']) => {
+    setNodes(ns => ns.map(n =>
+      n.id === nodeId ? { ...n, data: { ...n.data, type } } : n
+    ));
+  }, [setNodes]);
+
+  const addNode = useCallback(() => {
+    if (!newStatement.trim()) return;
+    const id = String(++idCounter);
+    const col = nodes.length % 3;
+    const row = Math.floor(nodes.length / 3);
+    const newNode: Node = {
+      id,
+      type: 'proofNode',
+      position: { x: 60 + col * 380, y: 60 + row * 180 },
+      data: {
+        id,
+        statement: newStatement.trim(),
+        type: newType,
+        verified: null,
+        onVerify: handleVerify,
+        onDelete: handleDelete,
+        onTypeChange: handleTypeChange,
+      } satisfies ProofNode & { onVerify: any; onDelete: any; onTypeChange: any },
+    };
+    setNodes(ns => [...ns, newNode]);
+    setNewStatement('');
+  }, [newStatement, newType, nodes.length, handleVerify, handleDelete, handleTypeChange, setNodes]);
+
+  const onConnect = useCallback(
+    (params: Connection) => setEdges(es => addEdge({ ...params, animated: true, style: { stroke: accent } }, es)),
+    [setEdges, accent]
+  );
+
+  const verifiedCount = nodes.filter(n => n.data.verified === true).length;
+  const failedCount   = nodes.filter(n => n.data.verified === false).length;
+  const totalNodes    = nodes.length;
+
+  return (
+    <div style={{
+      background: '#050300',
+      border: `1px solid ${accent}33`,
+      borderRadius: 10,
+      overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '10px 16px',
+        borderBottom: `1px solid ${accent}22`,
+        display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+      }}>
+        <span style={{ fontSize: '0.65rem', color: accent, letterSpacing: '0.12em' }}>PROOF TREE</span>
+        {totalNodes > 0 && (
+          <span style={{ fontSize: '0.6rem', color: '#6a5a3a' }}>
+            {totalNodes} nodes • {verifiedCount} ✓ • {failedCount} ✗
           </span>
         )}
+        <div style={{ flex: 1, display: 'flex', gap: 6 }}>
+          <input
+            value={newStatement}
+            onChange={e => setNewStatement(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && addNode()}
+            placeholder="Add statement or expression…"
+            style={{
+              flex: 1, background: '#0a0800', border: '1px solid #2a2010',
+              borderRadius: 4, padding: '4px 8px', color: '#c8bfa8',
+              fontSize: '0.75rem', fontFamily: "'JetBrains Mono', monospace",
+              outline: 'none',
+            }}
+          />
+          <select
+            value={newType}
+            onChange={e => setNewType(e.target.value as ProofNode['type'])}
+            style={{
+              background: '#0a0800', border: '1px solid #2a2010',
+              borderRadius: 4, padding: '4px 6px', color: '#c8bfa8',
+              fontSize: '0.7rem', cursor: 'pointer',
+            }}
+          >
+            <option value="hypothesis">Hypothesis</option>
+            <option value="step">Step</option>
+            <option value="conclusion">Conclusion</option>
+            <option value="dead_end">Dead End</option>
+          </select>
+          <button
+            onClick={addNode}
+            style={{
+              background: '#1a1408', border: `1px solid ${accent}55`,
+              color: accent, borderRadius: 4, padding: '4px 12px',
+              cursor: 'pointer', fontSize: '0.7rem',
+            }}
+          >+ ADD</button>
+        </div>
       </div>
 
-      <div style={{
-        border: `1px solid ${accentColor}22`, borderRadius: 8,
-        background: '#060400', overflow: 'auto', position: 'relative',
-      }}>
-        <svg
-          ref={svgRef}
-          width={svgW} height={svgH}
-          onMouseMove={handleMouseMove}
-          onMouseUp={() => setDragging(null)}
-          onMouseLeave={() => setDragging(null)}
-          style={{ cursor: dragging ? 'grabbing' : 'default', display: 'block' }}
+      {/* Canvas */}
+      <div style={{ height: 480 }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          style={{ background: '#050300' }}
+          defaultEdgeOptions={{ animated: true, style: { stroke: accent, strokeWidth: 1.5 } }}
         >
-          <defs>
-            <marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="3" orient="auto">
-              <path d="M0,0 L0,6 L8,3 z" fill="#3a2e10" />
-            </marker>
-          </defs>
-
-          {/* Edges */}
-          {edges.map((e, i) => {
-            const from = nodes.find(n => n.id === e.from);
-            const to   = nodes.find(n => n.id === e.to);
-            if (!from || !to) return null;
-            const x1 = from.x + W / 2, y1 = from.y + H;
-            const x2 = to.x + W / 2,   y2 = to.y;
-            return (
-              <g key={i}>
-                <line x1={x1} y1={y1} x2={x2} y2={y2}
-                  stroke="#2a2010" strokeWidth={1.5}
-                  markerEnd="url(#arrow)" />
-                {e.operation && (
-                  <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 4}
-                    fontSize={10} fill="#4a3820"
-                    textAnchor="middle" fontFamily="JetBrains Mono">
-                    {e.operation}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-
-          {/* Nodes */}
-          {nodes.map(n => {
-            const col = STATUS_COLORS[n.status];
-            const isSel = selected === n.id;
-            return (
-              <g key={n.id}
-                transform={`translate(${n.x}, ${n.y})`}
-                onMouseDown={e => handleMouseDown(e, n.id)}
-                style={{ cursor: 'grab' }}
-              >
-                <rect width={W} height={H} rx={8} ry={8}
-                  fill="#0a0800"
-                  stroke={isSel ? accentColor : col}
-                  strokeWidth={isSel ? 2 : 1} />
-                {/* Status dot */}
-                <circle cx={W - 10} cy={10} r={5} fill={col}
-                  onClick={ev => { ev.stopPropagation(); cycleStatus(n.id); }}
-                  style={{ cursor: 'pointer' }}
-                />
-                <foreignObject x={6} y={4} width={W - 20} height={H - 10}>
-                  <div style={{
-                    fontSize: '0.68rem', color: '#c8bfa8',
-                    fontFamily: "'JetBrains Mono', monospace",
-                    overflow: 'hidden', height: '100%',
-                    display: 'flex', alignItems: 'center',
-                    padding: '2px 2px',
-                    wordBreak: 'break-word',
-                  }}>
-                    {n.label}
-                  </div>
-                </foreignObject>
-                {onRequestVerify && isSel && (
-                  <text x={W / 2} y={H + 14}
-                    fontSize={9} fill={accentColor}
-                    textAnchor="middle" fontFamily="JetBrains Mono"
-                    style={{ cursor: 'pointer' }}
-                    onClick={ev => {
-                      ev.stopPropagation();
-                      const parent = edges.find(e => e.to === n.id);
-                      if (parent) onRequestVerify(parent.from, n.id);
-                    }}
-                  >
-                    ► VERIFY STEP
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {/* Legend */}
-      <div style={{ display: 'flex', gap: 14, marginTop: 6, fontSize: '0.58rem' }}>
-        {Object.entries(STATUS_COLORS).map(([s, c]) => (
-          <span key={s} style={{ color: c }}>● {s}</span>
-        ))}
+          <Background color="#1a1408" gap={20} size={1} />
+          <Controls style={{ background: '#0a0800', border: '1px solid #2a2010' }} />
+          <MiniMap
+            style={{ background: '#050300', border: '1px solid #2a2010' }}
+            nodeColor={(n) => NODE_BORDERS[n.data?.type as ProofNode['type']] || '#4a3820'}
+          />
+        </ReactFlow>
       </div>
     </div>
   );
