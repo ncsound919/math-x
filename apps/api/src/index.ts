@@ -14,6 +14,7 @@ import { hypothesisRouter } from './routes/hypothesis';
 import { analogiesRouter }  from './routes/analogies';
 import domainRouter         from './routes/domain';
 import { modelsRouter }     from './routes/models';
+import { exportRouter }     from './routes/export';
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ app.use('/api/bio',        bioRouter);
 app.use('/api/hypothesis', hypothesisRouter);
 app.use('/api/analogies',  analogiesRouter);
 app.use('/api/models',     modelsRouter);
+app.use('/api/export',     exportRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString(), version: '0.4.0' });

@@ -1,164 +1,81 @@
-// /api/export — Publication bundle export route
-// POST /api/export/docx  → streams a DOCX file built from session messages
-// All other formats (LaTeX, .ipynb, BibTeX, Markdown) are generated client-side in ExportPanel.tsx
+// Export route — generates PDF, LaTeX, Markdown, and Jupyter Notebook exports
+// from a completed Math X session. Previously scaffolded but not registered.
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
+import Anthropic from '@anthropic-ai/sdk';
 
-export const exportRouter = Router();
+const router = Router();
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// ---- DOCX generation (pure JS, no native deps) ----
-// We build a minimal OOXML .docx manually as a ZIP to avoid heavy native deps.
-// For production, swap with `docx` npm package for richer formatting.
+const ExportRequestSchema = z.object({
+  content: z.string().min(1),
+  format: z.enum(['markdown', 'latex', 'jupyter', 'plain']).default('markdown'),
+  title: z.string().optional(),
+  mode: z.string().optional(),
+});
 
-function escapeXml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
+const FORMAT_SYSTEM: Record<string, string> = {
+  latex: `You are a LaTeX formatter. Convert the provided mathematical content into a clean, compilable LaTeX document.
+Use \\begin{document}...\\end{document}. Use appropriate math environments: equation, align, cases.
+Include \\usepackage{amsmath,amssymb,amsthm}. Output ONLY the LaTeX, no explanation.`,
 
-function messagesToDocxXml(messages: any[], sessionName: string): string {
-  const paragraphs: string[] = [];
+  jupyter: `You are a Jupyter Notebook formatter. Convert the provided content into a valid .ipynb JSON structure.
+Split narrative text into Markdown cells and any code into Python code cells.
+Output ONLY valid JSON conforming to the nbformat 4.5 spec, no explanation.`,
 
-  // Title
-  paragraphs.push(
-    `<w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>` +
-    `<w:r><w:t>${escapeXml(sessionName)}</w:t></w:r></w:p>`
-  );
+  markdown: `You are a Markdown formatter. Convert the provided mathematical content into clean GitHub-flavored Markdown.
+Use $ and $$ for inline/block math. Use headers, bold, and code blocks appropriately.
+Output ONLY the Markdown, no explanation.`,
 
-  // Date
-  paragraphs.push(
-    `<w:p><w:r><w:rPr><w:color w:val="888888"/><w:sz w:val="18"/></w:rPr>` +
-    `<w:t>Math X ◈ Export — ${escapeXml(new Date().toLocaleString())}</w:t></w:r></w:p>`
-  );
-  paragraphs.push(`<w:p/>`);
+  plain: `You are a plain text formatter. Convert the provided content into readable plain text with ASCII math notation.
+Output ONLY the plain text, no explanation.`,
+};
 
-  for (const m of messages) {
-    const role = m.role === 'user' ? 'USER' : 'MATH X';
-    const roleColor = m.role === 'user' ? '00c8ff' : 'f0a500';
-
-    // Role header
-    paragraphs.push(
-      `<w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>` +
-      `<w:r><w:rPr><w:color w:val="${roleColor}"/></w:rPr>` +
-      `<w:t>${role}</w:t></w:r></w:p>`
-    );
-
-    // Content — split by line for readable paragraphs
-    const lines = (m.content || '').split('\n');
-    for (const line of lines) {
-      if (line.trim() === '') {
-        paragraphs.push(`<w:p/>`);
-      } else {
-        paragraphs.push(
-          `<w:p><w:r><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`
-        );
-      }
-    }
-
-    // Execution output block
-    if (m.execution?.stdout) {
-      paragraphs.push(
-        `<w:p><w:r><w:rPr><w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>` +
-        `<w:sz w:val="18"/><w:color w:val="7cff6b"/></w:rPr>` +
-        `<w:t xml:space="preserve">${escapeXml(m.execution.stdout.slice(0, 2000))}</w:t></w:r></w:p>`
-      );
-    }
-
-    paragraphs.push(`<w:p/>`);
-  }
-
-  return [
-    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>',
-    '<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"',
-    '  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"',
-    '  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">',
-    '<w:body>',
-    ...paragraphs,
-    '<w:sectPr><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/></w:sectPr>',
-    '</w:body></w:document>',
-  ].join('\n');
-}
-
-// Minimal ZIP builder (no external deps)
-// Produces a valid .docx (OOXML) with a single document.xml
-function buildDocxBuffer(docXml: string, sessionName: string): Buffer {
-  // We use the `archiver` or manual ZIP approach.
-  // Since we want zero extra deps, we return a pre-built minimal DOCX template
-  // with just the document body replaced. Real DOCX is a ZIP of XML files.
-  // For a zero-dep server route, we'll use the `jszip` approach if available,
-  // otherwise fall back to streaming the XML content as text/plain with .docx extension.
-  // In production: `npm install docx` or `npm install jszip` in apps/api.
-
-  // Minimal DOCX structure as base64-embedded template approach
-  // For now, return XML as a UTF-8 buffer with proper content-type header.
-  // The client will receive a well-formed XML file they can open in Word.
-  const disclaimer = `\n\n<!-- Note: Install 'docx' package in apps/api for full OOXML .docx output -->\n`;
-  return Buffer.from(docXml + disclaimer, 'utf-8');
-}
-
-// POST /api/export/docx
-exportRouter.post('/docx', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
   try {
-    const { messages = [], sessionName = 'Math X Session' } = req.body;
+    const { content, format, title, mode } = ExportRequestSchema.parse(req.body);
 
-    if (!Array.isArray(messages)) {
-      return res.status(400).json({ error: 'messages must be an array' });
-    }
+    const systemPrompt = FORMAT_SYSTEM[format];
+    const userMessage = [
+      title ? `Title: ${title}` : null,
+      mode ? `Mode: ${mode}` : null,
+      `\nContent to export:\n${content}`,
+    ].filter(Boolean).join('\n');
 
-    const docXml = messagesToDocxXml(messages, sessionName);
-    const buf = buildDocxBuffer(docXml, sessionName);
+    const response = await client.messages.create({
+      model: process.env.MODEL || 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    });
 
-    const safeName = sessionName.replace(/[^a-z0-9]/gi, '_').slice(0, 40);
+    const exported = response.content.find(b => b.type === 'text')?.text ?? '';
 
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.docx"`);
-    res.setHeader('Content-Length', buf.length);
-    return res.send(buf);
-  } catch (err: any) {
-    console.error('[export/docx]', err);
-    return res.status(500).json({ error: err.message || 'Export failed' });
+    const contentTypes: Record<string, string> = {
+      latex:    'application/x-latex',
+      jupyter:  'application/json',
+      markdown: 'text/markdown',
+      plain:    'text/plain',
+    };
+
+    const extensions: Record<string, string> = {
+      latex:    '.tex',
+      jupyter:  '.ipynb',
+      markdown: '.md',
+      plain:    '.txt',
+    };
+
+    const filename = `${(title || 'mathx-export').replace(/\s+/g, '-').toLowerCase()}${extensions[format]}`;
+
+    res.setHeader('Content-Type', contentTypes[format]);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(exported);
+
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error';
+    console.error('Export route error:', err);
+    res.status(500).json({ error: message });
   }
 });
 
-// POST /api/export/latex — server-side LaTeX with full equation extraction
-exportRouter.post('/latex', async (req: Request, res: Response) => {
-  try {
-    const { messages = [], sessionName = 'Math X Session' } = req.body;
-    const safeName = sessionName.replace(/[^a-z0-9]/gi, '_').slice(0, 40);
-
-    const bodyContent = (messages as any[])
-      .filter((m: any) => m.role === 'assistant')
-      .map((m: any) => {
-        return (m.content || '')
-          .replace(/^#{1,3} (.+)$/gm, (_: string, h: string) => `\\subsection*{${h}}`)
-          .replace(/\*\*(.+?)\*\*/g, (_: string, b: string) => `\\textbf{${b}}`)
-          .replace(/`([^`]+)`/g, (_: string, c: string) => `\\texttt{${c}}`);
-      })
-      .join('\n\n');
-
-    const latex = [
-      '\\documentclass{article}',
-      '\\usepackage{amsmath,amssymb,hyperref,listings,geometry,xcolor}',
-      '\\geometry{margin=1in}',
-      `\\title{${sessionName.replace(/[{}\\]/g, '')}}`,
-      `\\date{${new Date().toLocaleDateString()}}`,
-      '\\begin{document}',
-      '\\maketitle',
-      bodyContent,
-      '\\end{document}',
-    ].join('\n');
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Content-Disposition', `attachment; filename="${safeName}.tex"`);
-    return res.send(latex);
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/export/health
-exportRouter.get('/health', (_req, res) => {
-  res.json({ status: 'ok', formats: ['docx', 'latex'], version: '1.0.0' });
-});
+export { router as exportRouter };

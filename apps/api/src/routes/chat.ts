@@ -1,9 +1,20 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { MATHX_SYSTEM, MODE_PREFIXES } from '../services/prompts';
-import { selectProvider, routeModelStream } from '../services/modelRouter';
+import { selectProvider, routeModelStream, type Message } from '../services/modelRouter';
 
 const router = Router();
+
+/** Per-mode token budget. Deep Solve and Formula Lab need room to breathe. */
+const MODE_MAX_TOKENS: Record<string, number> = {
+  'deep-solve':  8000,
+  'formula':     6000,
+  'hypothesis':  6000,
+  'scientist':   4000,
+  'synergy':     4000,
+  'probability': 4000,
+  'file-intel':  4000,
+};
 
 const MessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
@@ -54,7 +65,7 @@ router.post('/', async (req: Request, res: Response) => {
     const prefixKey = domain && MODE_PREFIXES[domain] ? domain : mode;
     const prefix = MODE_PREFIXES[prefixKey] || MODE_PREFIXES.scientist;
 
-    const processedMessages = messages.map((m, i) => {
+    const processedMessages: Message[] = messages.map((m, i) => {
       if (i === messages.length - 1 && m.role === 'user') {
         const content = typeof m.content === 'string'
           ? `${prefix}${m.content}${contextBlock}${executionBlock}`
@@ -65,6 +76,7 @@ router.post('/', async (req: Request, res: Response) => {
     });
 
     const provider = providerPref === 'auto' ? selectProvider(mode) : providerPref;
+    const maxTokens = MODE_MAX_TOKENS[mode] ?? parseInt(process.env.MAX_TOKENS || '4000', 10);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -77,7 +89,7 @@ router.post('/', async (req: Request, res: Response) => {
     req.on('close', () => abortController.abort());
 
     await routeModelStream(
-      { messages: processedMessages as any, system: MATHX_SYSTEM, maxTokens: parseInt(process.env.MAX_TOKENS || '4000'), mode },
+      { messages: processedMessages, system: MATHX_SYSTEM, maxTokens, mode },
       provider,
       (text) => res.write(`data: ${JSON.stringify({ delta: text })}\n\n`),
       (usage) => { res.write(`data: ${JSON.stringify({ done: true, usage, provider })}\n\n`); res.end(); },
@@ -85,12 +97,13 @@ router.post('/', async (req: Request, res: Response) => {
       abortController.signal,
     );
 
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Internal server error';
     console.error('Chat route error:', err);
     if (!res.headersSent) {
-      res.status(500).json({ error: err.message || 'Internal server error' });
+      res.status(500).json({ error: message });
     } else {
-      res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+      res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
       res.end();
     }
   }
