@@ -16,6 +16,7 @@ import domainRouter         from './routes/domain'
 import { modelsRouter }     from './routes/models'
 import { exportRouter }     from './routes/export'
 import { requireAuth, initAuth } from './middleware/auth'
+import { requestLogger, logger } from './lib/logger'
 
 dotenv.config()
 
@@ -51,6 +52,7 @@ app.use('/api', limiter)
 // ---------------------------------------------------------------------------
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
+app.use(requestLogger)
 
 // ---------------------------------------------------------------------------
 // Auth — applied after rate limiting, before all routes
@@ -79,7 +81,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.listen(PORT, () => {
-  console.log(`Math X API v0.4 running on port ${PORT}`)
+  logger.info({ port: PORT }, 'Math X API v0.4 running')
 })
 
 export default app

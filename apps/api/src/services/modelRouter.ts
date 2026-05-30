@@ -127,7 +127,7 @@ export async function routeModelStream(
     const model = process.env.OLLAMA_MODEL || 'deepseek-r1:8b'
     const healthy = await checkOllamaHealth(baseURL)
     if (!healthy) {
-      console.warn(`[modelRouter] Ollama at ${baseURL} unreachable — falling back to Claude.`)
+      logger.warn({ provider: 'ollama' }, ` Ollama at ${baseURL} unreachable — falling back to Claude.`)
       return routeModelStream(req, 'claude', onText, onDone, onError, signal)
     }
     await streamOllamaCompatible(baseURL, model, req, onText, onDone, onError, signal)
@@ -139,7 +139,7 @@ export async function routeModelStream(
     const model = process.env.QWEN_MODEL || 'qwen2.5-math:7b'
     const healthy = await checkOllamaHealth(baseURL)
     if (!healthy) {
-      console.warn(`[modelRouter] Qwen at ${baseURL} unreachable — falling back to Claude.`)
+      logger.warn({ provider: 'ollama' }, ` Qwen at ${baseURL} unreachable — falling back to Claude.`)
       return routeModelStream(req, 'claude', onText, onDone, onError, signal)
     }
     await streamOllamaCompatible(baseURL, model, req, onText, onDone, onError, signal)
