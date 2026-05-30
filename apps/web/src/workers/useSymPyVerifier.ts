@@ -1,3 +1,4 @@
+import { apiFetch } from '../utils/apiFetch'
 /**
  * useSymPyVerifier — SymPy step verification hook.
  * Previously spawned a third independent Pyodide runtime.
@@ -57,7 +58,7 @@ export function useSymPyVerifier() {
     context?: string,
   ): Promise<VerifyResult[]> => {
     // 1. Ask API to generate SymPy verification code for each step
-    const apiRes = await fetch('/api/verify', {
+    const apiRes = await apiFetch('/api/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ steps, context }),

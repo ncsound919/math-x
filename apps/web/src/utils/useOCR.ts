@@ -1,3 +1,4 @@
+import { apiFetch } from './apiFetch'
 import { useState, useCallback } from 'react';
 
 export interface OCRResult {
@@ -33,7 +34,7 @@ export function useOCR() {
         reader.readAsDataURL(file);
       });
 
-      const res = await fetch('/api/ocr', {
+      const res = await apiFetch('/api/ocr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,3 +1,4 @@
+import { apiFetch } from './apiFetch'
 import { useState, useCallback } from 'react';
 
 export interface Paper {
@@ -17,7 +18,7 @@ export function useLiteratureRAG() {
   const search = useCallback(async (query: string, topK = 10): Promise<Paper[]> => {
     setLoading(true);
     try {
-      const res = await fetch('/api/literature', {
+      const res = await apiFetch('/api/literature', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, limit: topK }),
@@ -38,7 +39,7 @@ export function useLiteratureRAG() {
 // Lightweight pipeline helper — no React state, just returns context strings
 export async function fetchLiteratureContext(query: string, limit = 3): Promise<string[]> {
   try {
-    const res = await fetch('/api/literature', {
+    const res = await apiFetch('/api/literature', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, limit }),

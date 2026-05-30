@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { apiFetch } from '../utils/apiFetch';
 import { Omnibar } from '../components/Omnibar';
 import { ResultsPane } from '../components/ResultsPane';
 import { LeftDrawer } from '../components/LeftDrawer';
@@ -100,7 +101,7 @@ export default function App() {
 
     try {
       // Step 1: Plan
-      const planRes = await fetch('/api/plan', {
+      const planRes = await apiFetch('/api/plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: userText, mode: activeMode, hasFiles: attachedFiles.length > 0 }),
@@ -120,7 +121,7 @@ export default function App() {
       // Step 3: Code execution
       let execution: Message['execution'] = undefined;
       if (plan.requires_code) {
-        const codeRes = await fetch('/api/codegen', {
+        const codeRes = await apiFetch('/api/codegen', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ task: userText, mode: plan.engine, context: retrieved.map(r => r.text).join('\n') }),
@@ -133,7 +134,7 @@ export default function App() {
       }
 
       // Step 4: Streaming chat via SSE
-      const chatRes = await fetch('/api/chat', {
+      const chatRes = await apiFetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: history.map(m => ({ role: m.role, content: m.content })), mode: activeMode, provider, retrieved, execution }),

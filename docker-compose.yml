@@ -22,7 +22,7 @@ services:
       - /app/node_modules
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -31,16 +31,13 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: http://localhost:5000
+        # Set VITE_API_KEY in apps/web/.env or pass via --build-arg
     ports:
       - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - VITE_API_URL=http://localhost:5000
     depends_on:
       - api
-    volumes:
-      - ./apps/web:/app/apps/web
-      - /app/node_modules
     restart: unless-stopped
 
   ollama:
@@ -50,9 +47,6 @@ services:
     volumes:
       - ollama_data:/root/.ollama
     restart: unless-stopped
-    # Pull models on startup
-    # Run: docker compose exec ollama ollama pull qwen2.5-math
-    # Run: docker compose exec ollama ollama pull deepseek-r1
 
 volumes:
   ollama_data:
