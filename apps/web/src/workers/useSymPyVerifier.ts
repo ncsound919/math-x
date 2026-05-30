@@ -1,103 +1,93 @@
 /**
- * useSymPyVerifier — runs SymPy verification code in the Pyodide WASM engine.
- * Flow: API generates SymPy code → this hook executes it locally → returns VERIFIED/UNVERIFIED/ERROR.
- * All computation is local. The API only generates code, never sees results.
+ * useSymPyVerifier — SymPy step verification hook.
+ * Previously spawned a third independent Pyodide runtime.
+ * Now uses the shared PyodideWorkerManager (SymPy is in the base package set).
  */
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react'
+import { getPyodideManager } from './PyodideWorkerManager'
 
-export type VerificationStatus = 'pending' | 'verifying' | 'VERIFIED' | 'UNVERIFIED' | 'ERROR' | 'skipped';
+export type VerificationStatus = 'pending' | 'verifying' | 'VERIFIED' | 'UNVERIFIED' | 'ERROR' | 'skipped'
 
-export interface VerificationResult {
-  id: string;
-  status: VerificationStatus;
-  error?: string;
-  sympy_code?: string;
+export interface VerifyResult {
+  id: string
+  status: VerificationStatus
+  error?: string
+  sympy_code?: string
 }
-
-const WORKER_CODE = /* javascript */`
-importScripts('https://cdn.jsdelivr.net/pyodide/v0.27.0/full/pyodide.js');
-let pyodide = null;
-let ready = false;
-async function boot() {
-  pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.27.0/full/' });
-  await pyodide.loadPackage(['sympy']);
-  ready = true;
-  self.postMessage({ type: 'ready' });
-}
-boot();
-self.onmessage = async (e) => {
-  const { type, id, code } = e.data;
-  if (!ready) { self.postMessage({ type: 'result', id, verdict: 'ERROR: worker not ready' }); return; }
-  if (type === 'verify') {
-    try {
-      await pyodide.runPythonAsync(\`import sys, io; sys.stdout = io.StringIO()\`);
-      await pyodide.runPythonAsync(code);
-      const out = (await pyodide.runPythonAsync('sys.stdout.getvalue()')).trim();
-      self.postMessage({ type: 'result', id, verdict: out });
-    } catch(err) {
-      self.postMessage({ type: 'result', id, verdict: 'ERROR: ' + String(err) });
-    }
-  }
-};
-`;
 
 export function useSymPyVerifier() {
-  const [ready, setReady] = useState(false);
-  const workerRef = useRef<Worker | null>(null);
-  const pendingRef = useRef<Map<string, (verdict: string) => void>>(new Map());
+  const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const blob = new Blob([WORKER_CODE], { type: 'application/javascript' });
-    const url = URL.createObjectURL(blob);
-    const worker = new Worker(url);
-    workerRef.current = worker;
-    worker.onmessage = (e: MessageEvent) => {
-      if (e.data.type === 'ready') { setReady(true); return; }
-      const resolve = pendingRef.current.get(e.data.id);
-      if (resolve) { resolve(e.data.verdict); pendingRef.current.delete(e.data.id); }
-    };
-    return () => { worker.terminate(); URL.revokeObjectURL(url); };
-  }, []);
-
-  const verifyCode = useCallback((id: string, code: string): Promise<string> => {
-    if (!workerRef.current || !ready) return Promise.resolve('ERROR: verifier not ready');
-    return new Promise((resolve) => {
-      pendingRef.current.set(id, resolve);
-      workerRef.current!.postMessage({ type: 'verify', id, code });
-    });
-  }, [ready]);
+    const manager = getPyodideManager()
+    if (manager.isReady()) {
+      setReady(true)
+      return
+    }
+    // SymPy is in the base package set — ready as soon as Pyodide boots
+    manager.run('from sympy import symbols; pass')
+      .then(() => setReady(true))
+      .catch(() => {/* will surface as ERROR on first verify call */})
+  }, [])
 
   /**
-   * Full pipeline: call API to generate SymPy code, execute locally, return verdicts.
+   * Execute a SymPy verification script and return the raw stdout string.
+   * The script is expected to print 'VERIFIED', 'UNVERIFIED', or 'ERROR: ...'
+   */
+  const verifyCode = useCallback(async (id: string, code: string): Promise<string> => {
+    if (!ready) return 'ERROR: verifier not ready'
+    try {
+      return await getPyodideManager().run(code)
+    } catch (err) {
+      return `ERROR: ${String(err)}`
+    }
+  }, [ready])
+
+  /**
+   * Full pipeline: fetch SymPy code from API, execute locally, return verdicts.
    */
   const verifySteps = useCallback(async (
-    steps: { id: string; description: string; expression_before: string; expression_after: string; step_type?: string }[],
-    context?: string
-  ): Promise<VerificationResult[]> => {
-    // 1. Get SymPy code from API
+    steps: Array<{
+      id: string
+      description: string
+      expression_before: string
+      expression_after: string
+      step_type?: string
+    }>,
+    context?: string,
+  ): Promise<VerifyResult[]> => {
+    // 1. Ask API to generate SymPy verification code for each step
     const apiRes = await fetch('/api/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ steps, context }),
-    });
-    const { results: codeResults } = await apiRes.json();
+    })
+    const { results: codeResults } = await apiRes.json()
 
-    // 2. Execute each piece of SymPy code locally
+    // 2. Execute each piece of code locally — in parallel where possible
     const verdicts = await Promise.all(
-      codeResults.map(async (r: any): Promise<VerificationResult> => {
-        if (r.status === 'error' || !r.sympy_code) {
-          return { id: r.id, status: 'ERROR', error: r.error || 'No code generated' };
-        }
-        const verdict = await verifyCode(r.id, r.sympy_code);
-        let status: VerificationStatus = 'UNVERIFIED';
-        if (verdict.startsWith('VERIFIED')) status = 'VERIFIED';
-        else if (verdict.startsWith('ERROR')) status = 'ERROR';
-        return { id: r.id, status, error: status === 'ERROR' ? verdict : undefined, sympy_code: r.sympy_code };
-      })
-    );
+      (codeResults as Array<{ id: string; status?: string; sympy_code?: string; error?: string }>)
+        .map(async (r): Promise<VerifyResult> => {
+          if (r.status === 'error' || !r.sympy_code) {
+            return { id: r.id, status: 'ERROR', error: r.error ?? 'No code generated' }
+          }
 
-    return verdicts;
-  }, [verifyCode, ready]);
+          const verdict = await verifyCode(r.id, r.sympy_code)
+          let status: VerificationStatus = 'UNVERIFIED'
+          if (verdict.startsWith('VERIFIED'))    status = 'VERIFIED'
+          else if (verdict.startsWith('ERROR'))  status = 'ERROR'
 
-  return { ready, verifySteps, verifyCode };
+          return {
+            id: r.id,
+            status,
+            error: status === 'ERROR' ? verdict : undefined,
+            sympy_code: r.sympy_code,
+          }
+        })
+    )
+
+    return verdicts
+  }, [verifyCode, ready])
+
+  return { ready, verifySteps, verifyCode }
 }
