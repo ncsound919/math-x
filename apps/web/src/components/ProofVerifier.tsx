@@ -21,12 +21,12 @@ interface ProofVerifierProps {
 }
 
 const STATUS_CONFIG: Record<VerificationStatus, { label: string; color: string; bg: string }> = {
-  pending:     { label: 'PENDING',     color: '#6a5a3a', bg: '#1a1408' },
+  pending:     { label: 'PENDING',     color: 'var(--text-dim)', bg: 'var(--bg4)' },
   verifying:   { label: 'VERIFYING…', color: '#fbbf24', bg: '#1c1504' },
   VERIFIED:    { label: '✓ VERIFIED',   color: '#4ade80', bg: '#0a1a0a' },
   UNVERIFIED:  { label: '⚠ UNVERIFIED', color: '#f87171', bg: '#1a0a0a' },
   ERROR:       { label: '✕ ERROR',      color: '#f87171', bg: '#1a0a0a' },
-  skipped:     { label: 'SKIPPED',     color: '#4a3820', bg: '#0a0800' },
+  skipped:     { label: 'SKIPPED',     color: 'var(--text-muted)', bg: 'var(--bg1)' },
 };
 
 /**
@@ -123,7 +123,7 @@ export function ProofVerifier({ messageContent, modeColor }: ProofVerifierProps)
             background: 'none',
             border: `1px solid ${modeColor}44`,
             borderRadius: 4,
-            color: ready ? modeColor : '#4a3820',
+            color: ready ? modeColor : 'var(--text-muted)',
             fontSize: '0.6rem',
             padding: '3px 10px',
             cursor: ready ? 'pointer' : 'not-allowed',
@@ -133,7 +133,7 @@ export function ProofVerifier({ messageContent, modeColor }: ProofVerifierProps)
           Σ VERIFY {extractedPreview.length} STEP{extractedPreview.length !== 1 ? 'S' : ''}
         </button>
       ) : (
-        <div style={{ background: '#0a0800', border: '1px solid #2a2010', borderRadius: 6, padding: '8px 10px' }}>
+        <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 6, padding: '8px 10px' }}>
           <button
             onClick={() => setExpanded(p => !p)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: modeColor, fontSize: '0.62rem', letterSpacing: '0.1em', marginBottom: expanded ? 8 : 0, display: 'flex', alignItems: 'center', gap: 6 }}
@@ -167,7 +167,7 @@ export function ProofVerifier({ messageContent, modeColor }: ProofVerifierProps)
                   marginTop: 1,
                 }}>{cfg.label}</span>
                 <div>
-                  <div style={{ color: '#8a7a5a', fontSize: '0.63rem', lineHeight: 1.5 }}>{step.description}</div>
+                  <div style={{ color: 'var(--text-dim)', fontSize: '0.63rem', lineHeight: 1.5 }}>{step.description}</div>
                   {step.error && <div style={{ color: '#f87171', fontSize: '0.58rem', marginTop: 2 }}>{step.error}</div>}
                 </div>
               </div>
@@ -175,7 +175,7 @@ export function ProofVerifier({ messageContent, modeColor }: ProofVerifierProps)
           })}
 
           {running && (
-            <div style={{ color: '#4a3820', fontSize: '0.6rem', marginTop: 4, letterSpacing: '0.08em' }}>⟳ running sympy locally…</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.6rem', marginTop: 4, letterSpacing: '0.08em' }}>⟳ running sympy locally…</div>
           )}
         </div>
       )}

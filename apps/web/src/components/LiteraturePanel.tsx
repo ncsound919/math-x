@@ -64,7 +64,7 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
 
   return (
     <div style={{
-      background: '#080700', border: `1px solid ${modeColor}22`,
+      background: 'var(--bg1)', border: `1px solid ${modeColor}22`,
       borderRadius: 12, padding: 16, fontFamily: 'inherit',
     }}>
       <div style={{ color: modeColor, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.14em', marginBottom: 12 }}>
@@ -79,14 +79,14 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
           onKeyDown={e => e.key === 'Enter' && search()}
           placeholder="Search PubMed + arXiv..."
           style={{
-            flex: 1, background: '#0f0c02', border: `1px solid ${modeColor}33`,
-            borderRadius: 8, padding: '8px 12px', color: '#c8b880',
+            flex: 1, background: 'var(--bg2)', border: `1px solid ${modeColor}33`,
+            borderRadius: 8, padding: '8px 12px', color: 'var(--text)',
             fontSize: '0.72rem', outline: 'none', fontFamily: 'inherit',
           }}
         />
         <button onClick={search} disabled={loading}
           style={{
-            background: loading ? '#1a1408' : modeColor, color: '#0a0800',
+            background: loading ? 'var(--bg4)' : modeColor, color: 'var(--bg1)',
             border: 'none', borderRadius: 8, padding: '8px 14px',
             fontSize: '0.7rem', fontWeight: 700, cursor: loading ? 'default' : 'pointer',
           }}>
@@ -99,10 +99,10 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
         {(['pubmed', 'arxiv'] as const).map(src => (
           <button key={src} onClick={() => setSources(p => ({ ...p, [src]: !p[src] }))}
             style={{
-              background: sources[src] ? `${modeColor}18` : '#0f0c02',
-              border: `1px solid ${sources[src] ? modeColor + '55' : '#2a2010'}`,
+              background: sources[src] ? `${modeColor}18` : 'var(--bg2)',
+              border: `1px solid ${sources[src] ? modeColor + '55' : 'var(--border)'}`,
               borderRadius: 20, padding: '3px 12px',
-              color: sources[src] ? modeColor : '#4a3820',
+              color: sources[src] ? modeColor : 'var(--text-muted)',
               fontSize: '0.62rem', cursor: 'pointer', fontWeight: 600,
             }}>
             {src === 'pubmed' ? '🧬 PubMed' : '📜 arXiv'}
@@ -120,8 +120,8 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
             <div key={paper.id}
               onClick={() => toggleSelect(paper.id)}
               style={{
-                background: isSelected ? `${modeColor}0e` : '#0f0c02',
-                border: `1px solid ${isSelected ? modeColor + '55' : '#2a2010'}`,
+                background: isSelected ? `${modeColor}0e` : 'var(--bg2)',
+                border: `1px solid ${isSelected ? modeColor + '55' : 'var(--border)'}`,
                 borderRadius: 8, padding: '10px 12px', cursor: 'pointer',
                 transition: 'all 0.15s',
               }}
@@ -132,14 +132,14 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
                 </span>
                 {isSelected && <span style={{ color: modeColor, fontSize: '0.62rem' }}>✓ SELECTED</span>}
               </div>
-              <div style={{ color: '#c8b880', fontSize: '0.7rem', fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>
+              <div style={{ color: 'var(--text)', fontSize: '0.7rem', fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>
                 {paper.title}
               </div>
-              <div style={{ color: '#5a4a2a', fontSize: '0.62rem', marginBottom: 6 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem', marginBottom: 6 }}>
                 {paper.authors.slice(0, 3).join(', ')}{paper.authors.length > 3 ? ' et al.' : ''}
                 {paper.journal !== 'arXiv' ? ` · ${paper.journal}` : ''}
               </div>
-              <div style={{ color: '#4a3820', fontSize: '0.62rem', lineHeight: 1.6 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem', lineHeight: 1.6 }}>
                 {paper.abstract.slice(0, 200)}{paper.abstract.length > 200 ? '...' : ''}
               </div>
               <a href={paper.url} target="_blank" rel="noopener noreferrer"
@@ -157,7 +157,7 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
         <button onClick={injectSelected}
           style={{
             marginTop: 10, width: '100%', background: modeColor,
-            color: '#0a0800', border: 'none', borderRadius: 8,
+            color: 'var(--bg1)', border: 'none', borderRadius: 8,
             padding: '10px', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer',
           }}>
           ⬆ INJECT {selected.size} PAPER{selected.size > 1 ? 'S' : ''} INTO CONTEXT

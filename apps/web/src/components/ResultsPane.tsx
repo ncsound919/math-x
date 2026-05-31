@@ -45,7 +45,7 @@ export function ResultsPane({ messages, loading, error, modeObj, compute }: Resu
           <div style={{
             fontSize: '4rem', marginBottom: 14,
             fontFamily: 'var(--font-serif)', fontWeight: 700,
-            color: 'var(--gold)', filter: 'drop-shadow(0 0 30px #f0a50040)',
+            color: 'var(--gold)', filter: 'drop-shadow(0 0 30px var(--gold)40)',
           }}>X</div>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.3rem', color: '#8a6a30', letterSpacing: '0.08em', marginBottom: 4 }}>MATH X</div>
           <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)', letterSpacing: '0.2em', marginBottom: 24 }}>CROSS-DOMAIN MATHEMATICAL SCIENTIST</div>
@@ -85,8 +85,8 @@ export function ResultsPane({ messages, loading, error, modeObj, compute }: Resu
           {error && (
             <div style={{
               margin: '10px 0', padding: '10px 14px',
-              background: '#1a0800', border: '1px solid #ff6b3544',
-              borderRadius: 8, color: '#ff6b35',
+              background: '#1a0800', border: '1px solid var(--orange)44',
+              borderRadius: 8, color: 'var(--orange)',
               fontSize: '0.78rem', fontFamily: 'var(--font-mono)',
             }}>
               ⚠ {error}

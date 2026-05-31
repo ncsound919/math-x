@@ -47,10 +47,10 @@ const OPERATION_COLORS: Record<string, string> = {
 
 function VerificationBadge({ result, verifiable }: { result?: VerificationResult; verifiable: boolean }) {
   if (!verifiable) {
-    return <span style={{ fontSize: '0.6rem', color: '#5a5040', padding: '2px 7px', border: '1px solid #2a2010', borderRadius: 20 }}>AXIOM</span>;
+    return <span style={{ fontSize: '0.6rem', color: '#5a5040', padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 20 }}>AXIOM</span>;
   }
   if (!result) {
-    return <span style={{ fontSize: '0.6rem', color: '#5a5040', padding: '2px 7px', border: '1px solid #2a2010', borderRadius: 20 }}>PENDING</span>;
+    return <span style={{ fontSize: '0.6rem', color: '#5a5040', padding: '2px 7px', border: '1px solid var(--border)', borderRadius: 20 }}>PENDING</span>;
   }
   if (result.verified === true) {
     return <span style={{ fontSize: '0.6rem', color: '#4a9a4a', padding: '2px 7px', border: '1px solid #2a502a', borderRadius: 20, fontWeight: 700 }}>✓ VERIFIED</span>;
@@ -138,7 +138,7 @@ export function DerivationVerifier({ expression, modeColor = '#F0A500', apiBase 
         onClick={runVerification}
         disabled={loading || verifying}
         style={{
-          background: loading || verifying ? '#1a1408' : `${modeColor}18`,
+          background: loading || verifying ? 'var(--bg4)' : `${modeColor}18`,
           border: `1px solid ${modeColor}44`,
           borderRadius: 8, padding: '8px 16px',
           color: loading || verifying ? modeColor + '66' : modeColor,
@@ -154,7 +154,7 @@ export function DerivationVerifier({ expression, modeColor = '#F0A500', apiBase 
       {/* Trust Score Summary */}
       {summary && (
         <div style={{
-          background: '#0a0900', border: `1px solid ${modeColor}22`,
+          background: 'var(--bg1)', border: `1px solid ${modeColor}22`,
           borderRadius: 10, padding: '12px 16px', marginBottom: 16,
           display: 'flex', gap: 20, alignItems: 'center',
         }}>
@@ -162,7 +162,7 @@ export function DerivationVerifier({ expression, modeColor = '#F0A500', apiBase 
             <div style={{ fontSize: '1.8rem', fontWeight: 900, color: summary.trust_score >= 80 ? '#4a9a4a' : summary.trust_score >= 50 ? modeColor : '#9a4a4a' }}>
               {summary.trust_score}%
             </div>
-            <div style={{ fontSize: '0.58rem', color: '#4a3820', letterSpacing: '0.1em' }}>TRUST SCORE</div>
+            <div style={{ fontSize: '0.58rem', color: 'var(--text-muted)', letterSpacing: '0.1em' }}>TRUST SCORE</div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <div style={{ fontSize: '0.65rem', color: '#4a9a4a' }}>✓ {summary.verified} verified algebraically</div>
@@ -170,7 +170,7 @@ export function DerivationVerifier({ expression, modeColor = '#F0A500', apiBase 
             <div style={{ fontSize: '0.65rem', color: '#5a5040' }}>○ {summary.not_verifiable} axiomatic/definitional</div>
           </div>
           {!pyodideReady && (
-            <div style={{ fontSize: '0.62rem', color: '#6a5830', marginLeft: 'auto', textAlign: 'right' }}>
+            <div style={{ fontSize: '0.62rem', color: 'var(--text-dim)', marginLeft: 'auto', textAlign: 'right' }}>
               WASM engine loading…<br />verification will run when ready
             </div>
           )}
@@ -183,7 +183,7 @@ export function DerivationVerifier({ expression, modeColor = '#F0A500', apiBase 
           const opColor = OPERATION_COLORS[s.operation] || OPERATION_COLORS.default;
           return (
             <div key={s.step} style={{
-              background: '#0a0900',
+              background: 'var(--bg1)',
               border: `1px solid ${s.verification?.verified === true ? '#2a502a' : s.verification?.verified === false ? '#502a2a' : '#1a1808'}`,
               borderRadius: 8, padding: '10px 14px',
             }}>
@@ -193,13 +193,13 @@ export function DerivationVerifier({ expression, modeColor = '#F0A500', apiBase 
                   border: `1px solid ${opColor}44`, borderRadius: 4,
                   padding: '1px 7px', fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.08em',
                 }}>{s.operation?.toUpperCase()}</span>
-                <span style={{ color: '#5a4a2a', fontSize: '0.65rem', flex: 1 }}>{s.description}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.65rem', flex: 1 }}>{s.description}</span>
                 <VerificationBadge result={s.verification} verifiable={s.verifiable} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'monospace', fontSize: '0.7rem' }}>
-                <span style={{ color: '#8a7850', flex: 1, wordBreak: 'break-all' }}>{s.from_expr}</span>
-                <span style={{ color: '#4a3820' }}>→</span>
-                <span style={{ color: '#c8b880', flex: 1, wordBreak: 'break-all' }}>{s.to_expr}</span>
+                <span style={{ color: 'var(--text-dim)', flex: 1, wordBreak: 'break-all' }}>{s.from_expr}</span>
+                <span style={{ color: 'var(--text-muted)' }}>→</span>
+                <span style={{ color: 'var(--text)', flex: 1, wordBreak: 'break-all' }}>{s.to_expr}</span>
               </div>
             </div>
           );

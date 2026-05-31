@@ -32,14 +32,14 @@ function buildOption(data: any, type: string): echarts.EChartsOption {
     return {
       backgroundColor: 'transparent',
       grid: { left: 48, right: 16, top: 16, bottom: 40 },
-      xAxis: { type: 'value', splitLine: { lineStyle: { color: '#2a2010' } }, axisLine: { lineStyle: { color: '#3a2e10' } }, axisLabel: { color: '#6a5c40', fontSize: 10 } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#2a2010' } }, axisLine: { lineStyle: { color: '#3a2e10' } }, axisLabel: { color: '#6a5c40', fontSize: 10 } },
+      xAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--border)' } }, axisLine: { lineStyle: { color: 'var(--border-bright)' } }, axisLabel: { color: 'var(--text-dim)', fontSize: 10 } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--border)' } }, axisLine: { lineStyle: { color: 'var(--border-bright)' } }, axisLabel: { color: 'var(--text-dim)', fontSize: 10 } },
       series: [{
         type: resolved as any,
         data: norm.x.map((xi, i) => [xi, norm.y![i]]),
         symbolSize: resolved === 'scatter' ? 3 : undefined,
-        lineStyle: resolved === 'line' ? { color: '#f0a500', width: 1.5 } : undefined,
-        itemStyle: { color: '#f0a500' },
+        lineStyle: resolved === 'line' ? { color: 'var(--gold)', width: 1.5 } : undefined,
+        itemStyle: { color: 'var(--gold)' },
         large: true,
       }],
       animation: false,
@@ -50,9 +50,9 @@ function buildOption(data: any, type: string): echarts.EChartsOption {
     return {
       backgroundColor: 'transparent',
       grid: { left: 60, right: 16, top: 16, bottom: 60 },
-      xAxis: { type: 'category', data: norm.labels, axisLabel: { color: '#6a5c40', fontSize: 10, rotate: norm.labels.length > 8 ? 30 : 0 } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#2a2010' } }, axisLabel: { color: '#6a5c40', fontSize: 10 } },
-      series: [{ type: type === 'line' ? 'line' : 'bar', data: norm.values, itemStyle: { color: '#f0a500' }, barMaxWidth: 40 }],
+      xAxis: { type: 'category', data: norm.labels, axisLabel: { color: 'var(--text-dim)', fontSize: 10, rotate: norm.labels.length > 8 ? 30 : 0 } },
+      yAxis: { type: 'value', splitLine: { lineStyle: { color: 'var(--border)' } }, axisLabel: { color: 'var(--text-dim)', fontSize: 10 } },
+      series: [{ type: type === 'line' ? 'line' : 'bar', data: norm.values, itemStyle: { color: 'var(--gold)' }, barMaxWidth: 40 }],
       animation: true,
     };
   }
@@ -83,7 +83,7 @@ export function ChartView({ data, type = 'auto', height = 320 }: ChartViewProps)
       ref={containerRef}
       style={{
         width: '100%', height,
-        background: '#0d0b07',
+        background: 'var(--bg2)',
         borderRadius: 8, marginBottom: 10,
         border: '1px solid #2a1f08',
       }}

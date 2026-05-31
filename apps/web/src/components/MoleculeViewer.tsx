@@ -14,7 +14,7 @@ interface MoleculeViewerProps {
 
 type RepresentationType = 'cartoon' | 'ball+stick' | 'surface' | 'spacefill'
 
-export function MoleculeViewer({ pdbData, accentColor = '#00c8ff', height = 360 }: MoleculeViewerProps) {
+export function MoleculeViewer({ pdbData, accentColor = 'var(--blue)', height = 360 }: MoleculeViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef     = useRef<unknown>(null)
   const [rep,     setRep]     = useState<RepresentationType>('cartoon')
@@ -33,7 +33,7 @@ export function MoleculeViewer({ pdbData, accentColor = '#00c8ff', height = 360 
         if (cancelled) return
 
         const stage = new (NGL as any).Stage(containerRef.current, {
-          backgroundColor: '#080600',
+          backgroundColor: 'var(--bg)',
         })
         stageRef.current = stage
 
@@ -81,7 +81,7 @@ export function MoleculeViewer({ pdbData, accentColor = '#00c8ff', height = 360 
 
   if (error) {
     return (
-      <div style={{ padding: 10, color: '#ff6b35', fontSize: '0.75rem' }}>
+      <div style={{ padding: 10, color: 'var(--orange)', fontSize: '0.75rem' }}>
         Molecule viewer error: {error}
       </div>
     )

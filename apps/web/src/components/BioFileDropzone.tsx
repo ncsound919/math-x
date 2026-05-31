@@ -76,21 +76,21 @@ export function BioFileDropzone({ onFileParsed, modeColor, collapsed = false }: 
         onDrop={handleDrop}
         onClick={() => inputRef.current?.click()}
         style={{
-          border: `1px dashed ${dragging ? modeColor : '#2a2010'}`,
+          border: `1px dashed ${dragging ? modeColor : 'var(--border)'}`,
           borderRadius: 8,
           padding: '16px 12px',
           textAlign: 'center',
           cursor: 'pointer',
-          background: dragging ? `${modeColor}08` : '#0a0800',
+          background: dragging ? `${modeColor}08` : 'var(--bg1)',
           transition: 'all 0.15s',
           marginBottom: 10,
         }}
       >
         <div style={{ fontSize: '1.2rem', marginBottom: 4 }}>🧬</div>
-        <div style={{ color: ready ? modeColor : '#4a3820', fontSize: '0.68rem', letterSpacing: '0.1em' }}>
+        <div style={{ color: ready ? modeColor : 'var(--text-muted)', fontSize: '0.68rem', letterSpacing: '0.1em' }}>
           {ready ? 'DROP BIO FILES' : 'LOADING BIO ENGINE…'}
         </div>
-        <div style={{ color: '#3a2e10', fontSize: '0.58rem', marginTop: 4 }}>
+        <div style={{ color: 'var(--border-bright)', fontSize: '0.58rem', marginTop: 4 }}>
           FASTA · FASTQ · VCF · PDB · BED · GFF3
         </div>
         <input
@@ -106,7 +106,7 @@ export function BioFileDropzone({ onFileParsed, modeColor, collapsed = false }: 
       {/* Loaded files list */}
       {files.map(f => (
         <div key={f.name} style={{
-          background: '#0d0a04',
+          background: 'var(--bg2)',
           border: `1px solid ${typeColor(f.type)}22`,
           borderRadius: 6,
           padding: '8px 10px',
@@ -123,13 +123,13 @@ export function BioFileDropzone({ onFileParsed, modeColor, collapsed = false }: 
                 letterSpacing: '0.1em',
                 fontWeight: 700,
               }}>{f.type.toUpperCase()}</span>
-              <span style={{ color: '#8a7a5a', fontSize: '0.65rem' }}>{f.name}</span>
+              <span style={{ color: 'var(--text-dim)', fontSize: '0.65rem' }}>{f.name}</span>
             </div>
-            <span style={{ color: '#3a2e10', fontSize: '0.6rem' }}>{(f.size / 1024).toFixed(1)} KB</span>
+            <span style={{ color: 'var(--border-bright)', fontSize: '0.6rem' }}>{(f.size / 1024).toFixed(1)} KB</span>
           </div>
 
           {f.parsing && (
-            <div style={{ color: '#4a3820', fontSize: '0.62rem', marginTop: 4, letterSpacing: '0.08em' }}>⟳ parsing locally…</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem', marginTop: 4, letterSpacing: '0.08em' }}>⟳ parsing locally…</div>
           )}
 
           {f.result && !f.parsing && (
@@ -142,14 +142,14 @@ export function BioFileDropzone({ onFileParsed, modeColor, collapsed = false }: 
                     .slice(0, 6)
                     .map(([k, v]) => (
                       <span key={k} style={{
-                        background: '#1a1408',
-                        border: '1px solid #2a2010',
+                        background: 'var(--bg4)',
+                        border: '1px solid var(--border)',
                         borderRadius: 4,
                         padding: '2px 6px',
                         fontSize: '0.58rem',
-                        color: '#6a5a3a',
+                        color: 'var(--text-dim)',
                       }}>
-                        <span style={{ color: '#4a3820' }}>{k.replace(/_/g,' ')}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{k.replace(/_/g,' ')}</span>
                         {' '}<span style={{ color: '#a89870' }}>{String(v)}</span>
                       </span>
                     ))}
@@ -157,8 +157,8 @@ export function BioFileDropzone({ onFileParsed, modeColor, collapsed = false }: 
               )}
               {f.result.preview && (
                 <details style={{ marginTop: 5 }}>
-                  <summary style={{ color: '#3a2e10', fontSize: '0.58rem', cursor: 'pointer', letterSpacing: '0.08em' }}>PREVIEW</summary>
-                  <pre style={{ color: '#6a5a3a', fontSize: '0.58rem', marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto' }}>{f.result.preview}</pre>
+                  <summary style={{ color: 'var(--border-bright)', fontSize: '0.58rem', cursor: 'pointer', letterSpacing: '0.08em' }}>PREVIEW</summary>
+                  <pre style={{ color: 'var(--text-dim)', fontSize: '0.58rem', marginTop: 4, whiteSpace: 'pre-wrap', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto' }}>{f.result.preview}</pre>
                 </details>
               )}
             </div>

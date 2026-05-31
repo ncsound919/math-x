@@ -59,7 +59,7 @@ export function BioFileCard({ filename, format, summary, modeColor = '#F0A500', 
   if (summary.error) {
     return (
       <div style={{
-        background: '#0d0a02', border: '1px solid #3a1a1a', borderRadius: 10,
+        background: 'var(--bg2)', border: '1px solid #3a1a1a', borderRadius: 10,
         padding: '14px 16px', margin: '8px 0', maxWidth: 600,
       }}>
         <div style={{ color: '#cc4444', fontSize: '0.75rem' }}>⚠ Parse error: {summary.error}</div>
@@ -69,7 +69,7 @@ export function BioFileCard({ filename, format, summary, modeColor = '#F0A500', 
 
   return (
     <div style={{
-      background: '#0a0900', border: `1px solid ${modeColor}22`,
+      background: 'var(--bg1)', border: `1px solid ${modeColor}22`,
       borderRadius: 12, padding: '16px 18px', margin: '10px 0',
       maxWidth: 680, fontFamily: 'inherit',
     }}>
@@ -78,7 +78,7 @@ export function BioFileCard({ filename, format, summary, modeColor = '#F0A500', 
         <span style={{ fontSize: '1.4rem' }}>{icon}</span>
         <div>
           <div style={{ color: modeColor, fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.12em' }}>{label}</div>
-          <div style={{ color: '#5a4a2a', fontSize: '0.62rem', marginTop: 2 }}>{filename}</div>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem', marginTop: 2 }}>{filename}</div>
         </div>
         <div style={{
           marginLeft: 'auto', background: `${modeColor}18`, border: `1px solid ${modeColor}33`,
@@ -95,13 +95,13 @@ export function BioFileCard({ filename, format, summary, modeColor = '#F0A500', 
           .filter(([k]) => !['format', 'first_3_ids', 'first_3_descriptions', 'columns', 'samples'].includes(k))
           .map(([key, value]) => (
             <div key={key} style={{
-              background: '#130f04', borderRadius: 8,
-              padding: '8px 10px', border: '1px solid #2a2010',
+              background: 'var(--bg3)', borderRadius: 8,
+              padding: '8px 10px', border: '1px solid var(--border)',
             }}>
-              <div style={{ color: '#4a3820', fontSize: '0.58rem', letterSpacing: '0.1em', marginBottom: 3 }}>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.58rem', letterSpacing: '0.1em', marginBottom: 3 }}>
                 {key.replace(/_/g, ' ').toUpperCase()}
               </div>
-              <div style={{ color: '#c8b880', fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.4 }}>
+              <div style={{ color: 'var(--text)', fontSize: '0.72rem', fontWeight: 600, lineHeight: 1.4 }}>
                 {typeof value === 'object' ? formatValue(value) : String(value)}
               </div>
             </div>
@@ -110,8 +110,8 @@ export function BioFileCard({ filename, format, summary, modeColor = '#F0A500', 
 
       {/* IDs / sample preview */}
       {(summary.first_3_ids || summary.samples) && (
-        <div style={{ marginBottom: 14, padding: '8px 10px', background: '#0f0c02', borderRadius: 8, border: '1px solid #1a1508' }}>
-          <div style={{ color: '#3a2e10', fontSize: '0.58rem', letterSpacing: '0.1em', marginBottom: 4 }}>PREVIEW</div>
+        <div style={{ marginBottom: 14, padding: '8px 10px', background: 'var(--bg2)', borderRadius: 8, border: '1px solid #1a1508' }}>
+          <div style={{ color: 'var(--border-bright)', fontSize: '0.58rem', letterSpacing: '0.1em', marginBottom: 4 }}>PREVIEW</div>
           <div style={{ color: '#7a6840', fontSize: '0.68rem', fontFamily: 'monospace' }}>
             {(summary.first_3_ids || summary.samples || []).join(' · ')}
           </div>
@@ -121,18 +121,18 @@ export function BioFileCard({ filename, format, summary, modeColor = '#F0A500', 
       {/* Suggested Questions */}
       {onAskQuestion && (
         <div>
-          <div style={{ color: '#3a2e10', fontSize: '0.58rem', letterSpacing: '0.1em', marginBottom: 6 }}>SUGGESTED ANALYSIS</div>
+          <div style={{ color: 'var(--border-bright)', fontSize: '0.58rem', letterSpacing: '0.1em', marginBottom: 6 }}>SUGGESTED ANALYSIS</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {questions.map((q) => (
               <button key={q} onClick={() => onAskQuestion(q)}
                 style={{
-                  background: 'none', border: `1px solid #2a2010`,
+                  background: 'none', border: `1px solid var(--border)`,
                   borderRadius: 6, padding: '6px 10px',
-                  color: '#8a7850', fontSize: '0.65rem', textAlign: 'left',
+                  color: 'var(--text-dim)', fontSize: '0.65rem', textAlign: 'left',
                   cursor: 'pointer', transition: 'all 0.15s',
                 }}
                 onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = modeColor + '55'; (e.currentTarget as HTMLButtonElement).style.color = modeColor; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = '#2a2010'; (e.currentTarget as HTMLButtonElement).style.color = '#8a7850'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-dim)'; }}
               >
                 ↗ {q}
               </button>

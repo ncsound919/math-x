@@ -31,7 +31,7 @@ export function LeftDrawer({
       minWidth: open ? 240 : 0,
       overflow: 'hidden',
       transition: 'all 0.22s ease',
-      borderRight: open ? '1px solid #1e1808' : 'none',
+      borderRight: open ? '1px solid var(--border-dim)' : 'none',
       background: 'var(--bg1)',
       display: 'flex', flexDirection: 'column',
       flexShrink: 0,
@@ -54,7 +54,7 @@ export function LeftDrawer({
           </div>
 
           {sessions.length === 0 ? (
-            <div style={{ fontSize: '0.65rem', color: '#2a2010', fontStyle: 'italic', padding: '6px 0' }}>No sessions yet</div>
+            <div style={{ fontSize: '0.65rem', color: 'var(--border)', fontStyle: 'italic', padding: '6px 0' }}>No sessions yet</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {sessions.slice(0, 20).map(s => (
@@ -62,8 +62,8 @@ export function LeftDrawer({
                   key={s.id}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4,
-                    background: activeSessionId === s.id ? `${modeColor}14` : '#0e0c07',
-                    border: `1px solid ${activeSessionId === s.id ? modeColor + '44' : '#1e1808'}`,
+                    background: activeSessionId === s.id ? `${modeColor}14` : 'var(--bg2)',
+                    border: `1px solid ${activeSessionId === s.id ? modeColor + '44' : 'var(--border-dim)'}`,
                     borderRadius: 5, padding: '5px 7px',
                     cursor: 'pointer', transition: 'all 0.12s',
                   }}
@@ -72,7 +72,7 @@ export function LeftDrawer({
                   <div style={{ flex: 1, overflow: 'hidden' }}>
                     <div style={{
                       fontSize: '0.65rem',
-                      color: activeSessionId === s.id ? modeColor : '#8a7a5a',
+                      color: activeSessionId === s.id ? modeColor : 'var(--text-dim)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{s.name}</div>
                     <div style={{ fontSize: '0.58rem', color: 'var(--text-faint)', marginTop: 1 }}>
@@ -88,8 +88,8 @@ export function LeftDrawer({
                       color: 'var(--text-faint)', cursor: 'pointer',
                       fontSize: '0.7rem', padding: '0 2px', flexShrink: 0,
                     }}
-                    onMouseEnter={e => { (e.target as HTMLElement).style.color = '#ff6b35'; }}
-                    onMouseLeave={e => { (e.target as HTMLElement).style.color = '#3a2e10'; }}
+                    onMouseEnter={e => { (e.target as HTMLElement).style.color = 'var(--orange)'; }}
+                    onMouseLeave={e => { (e.target as HTMLElement).style.color = 'var(--border-bright)'; }}
                   >×</button>
                 </div>
               ))}
@@ -125,8 +125,8 @@ export function LeftDrawer({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {ingestedFiles.map((f, i) => (
                 <div key={i} style={{
-                  fontSize: '0.68rem', color: '#6a5a3a',
-                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '0.68rem', color: 'var(--text-dim)',
+                  fontFamily: 'var(--font-mono)',
                   padding: '4px 8px',
                   background: 'var(--bg2)', borderRadius: 4,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -143,7 +143,7 @@ export function LeftDrawer({
           <div style={{ fontSize: '0.58rem', color: 'var(--text-faint)', letterSpacing: '0.12em', marginBottom: 8 }}>SHORTCUTS</div>
           {[['\u2318\u23ce', 'Send query'], ['⇧⏎', 'New line'], ['☰', 'Toggle drawer'], ['📎', 'Attach files'], ['◫', 'Ingest folder']].map(([k, v]) => (
             <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', color: 'var(--text-muted)', marginBottom: 4 }}>
-              <code style={{ color: modeColor, fontFamily: "'JetBrains Mono', monospace" }}>{k}</code>
+              <code style={{ color: modeColor, fontFamily: 'var(--font-mono)' }}>{k}</code>
               <span>{v}</span>
             </div>
           ))}

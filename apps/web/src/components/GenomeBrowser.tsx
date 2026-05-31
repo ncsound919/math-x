@@ -34,7 +34,7 @@ export function GenomeBrowser({
   tracks,
   genome = 'hg38',
   locus = 'chr1:1-50000000',
-  accentColor = '#7cff6b',
+  accentColor = 'var(--green)',
   height = 400,
 }: GenomeBrowserProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -83,7 +83,7 @@ export function GenomeBrowser({
 
   if (error) {
     return (
-      <div style={{ padding: 10, color: '#ff6b35', fontSize: '0.75rem', fontFamily: "var(--font-mono)" }}>
+      <div style={{ padding: 10, color: 'var(--orange)', fontSize: '0.75rem', fontFamily: "var(--font-mono)" }}>
         <div>Genome browser error: {error}</div>
         <div style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: '0.65rem' }}>
           Reference genome data requires an internet connection. Local track data works offline.

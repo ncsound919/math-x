@@ -65,13 +65,13 @@ export function DomainPicker({ activeDomain, onSelect, modeColor, visible }: Dom
           <span style={{ color: modeColor, fontSize: '1.2rem' }}>∫</span>
           <div>
             <div style={{ color: modeColor, fontSize: '0.72rem', letterSpacing: '0.14em', fontWeight: 700 }}>DOMAIN EXPERT MODE</div>
-            <div style={{ color: '#4a3820', fontSize: '0.62rem', letterSpacing: '0.1em', marginTop: 2 }}>SELECT A MATHEMATICS SPECIALIST</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem', letterSpacing: '0.1em', marginTop: 2 }}>SELECT A MATHEMATICS SPECIALIST</div>
           </div>
         </div>
 
         {DOMAIN_GROUPS.map(group => (
           <div key={group.label} style={{ marginBottom: 22 }}>
-            <div style={{ fontSize: '0.58rem', color: '#3a2e10', letterSpacing: '0.2em', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid #1e1808' }}>
+            <div style={{ fontSize: '0.58rem', color: 'var(--border-bright)', letterSpacing: '0.2em', marginBottom: 10, paddingBottom: 6, borderBottom: '1px solid var(--border-dim)' }}>
               {group.label}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
@@ -82,8 +82,8 @@ export function DomainPicker({ activeDomain, onSelect, modeColor, visible }: Dom
                     key={d.id}
                     onClick={() => onSelect(d.id)}
                     style={{
-                      background: isActive ? `${modeColor}12` : '#0a0800',
-                      border: isActive ? `1px solid ${modeColor}66` : '1px solid #2a2010',
+                      background: isActive ? `${modeColor}12` : 'var(--bg1)',
+                      border: isActive ? `1px solid ${modeColor}66` : '1px solid var(--border)',
                       borderRadius: 8,
                       padding: '10px 12px',
                       textAlign: 'left',
@@ -94,14 +94,14 @@ export function DomainPicker({ activeDomain, onSelect, modeColor, visible }: Dom
                       if (!isActive) (e.currentTarget as HTMLButtonElement).style.borderColor = modeColor + '44';
                     }}
                     onMouseLeave={e => {
-                      if (!isActive) (e.currentTarget as HTMLButtonElement).style.borderColor = '#2a2010';
+                      if (!isActive) (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)';
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
-                      <span style={{ color: isActive ? modeColor : '#6a5a3a', fontSize: '0.9rem' }}>{d.icon}</span>
+                      <span style={{ color: isActive ? modeColor : 'var(--text-dim)', fontSize: '0.9rem' }}>{d.icon}</span>
                       <span style={{ color: isActive ? modeColor : '#a89870', fontSize: '0.72rem', fontWeight: 600 }}>{d.name}</span>
                     </div>
-                    <div style={{ color: '#4a3820', fontSize: '0.62rem', lineHeight: 1.5 }}>{d.desc}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.62rem', lineHeight: 1.5 }}>{d.desc}</div>
                   </button>
                 );
               })}

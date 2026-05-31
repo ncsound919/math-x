@@ -28,7 +28,7 @@ function safeEval(expr: string): ((x: number) => number) | null {
   }
 }
 
-export function MafsPlot({ spec, accent = '#f0a500', height = 300 }: MafsPlotProps) {
+export function MafsPlot({ spec, accent = 'var(--gold)', height = 300 }: MafsPlotProps) {
   const [error, setError] = useState<string | null>(null);
 
   const content = useMemo(() => {
@@ -105,12 +105,12 @@ export function MafsPlot({ spec, accent = '#f0a500', height = 300 }: MafsPlotPro
     <div style={{
       marginBottom: 12,
       borderRadius: 8,
-      border: '1px solid #2a2010',
+      border: '1px solid var(--border)',
       overflow: 'hidden',
-      background: '#060400',
+      background: 'var(--bg)',
     }}>
       {error && (
-        <div style={{ padding: '6px 12px', background: '#1a0800', color: '#ff6b35', fontSize: '0.7rem' }}>
+        <div style={{ padding: '6px 12px', background: 'var(--bg)', color: 'var(--orange)', fontSize: '0.7rem' }}>
           Mafs error: {error}
         </div>
       )}
@@ -119,11 +119,11 @@ export function MafsPlot({ spec, accent = '#f0a500', height = 300 }: MafsPlotPro
         viewBox={{ x: [-6, 6], y: [-4, 4] }}
         preserveAspectRatio={false}
         theme={{
-          foreground: '#c8bfa8',
-          background: '#060400',
-          red: '#ff6b35',
+          foreground: 'var(--text)',
+          background: 'var(--bg)',
+          red: 'var(--orange)',
           orange: accent,
-          green: '#7cff6b',
+          green: 'var(--green)',
           blue: '#4a9eff',
           indigo: '#9b8bff',
           violet: '#d48fff',

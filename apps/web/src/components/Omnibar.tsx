@@ -82,18 +82,18 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
       {ocrPreview && (
         <div style={{
           marginBottom: 8, padding: '8px 12px',
-          background: '#0d0b00', border: `1px solid ${color}44`,
+          background: 'var(--bg2)', border: `1px solid ${color}44`,
           borderRadius: 6, display: 'flex', gap: 10, alignItems: 'center',
         }}>
           <img src={ocrPreview} alt="OCR preview" style={{ width: 48, height: 48, objectFit: 'contain', borderRadius: 4, background: '#000' }} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '0.6rem', color: color, marginBottom: 2 }}>EXTRACTING LATEX…</div>
             {ocrLoading && (
-              <div style={{ width: '100%', height: 3, background: '#1a1408', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ width: '100%', height: 3, background: 'var(--bg4)', borderRadius: 2, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: '60%', background: color, borderRadius: 2, animation: 'scan 1s ease-in-out infinite alternate' }} />
               </div>
             )}
-            {ocrError && <div style={{ fontSize: '0.65rem', color: '#ff6b35' }}>{ocrError}</div>}
+            {ocrError && <div style={{ fontSize: '0.65rem', color: 'var(--orange)' }}>{ocrError}</div>}
           </div>
         </div>
       )}
@@ -102,14 +102,14 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
           {files.map(f => (
             <span key={f.name} style={{
-              fontSize: '0.65rem', color: '#c8bfa8',
-              background: '#1a1408', border: '1px solid #3a2e10',
+              fontSize: '0.65rem', color: 'var(--text)',
+              background: 'var(--bg4)', border: '1px solid var(--border-bright)',
               borderRadius: 4, padding: '2px 8px',
               display: 'flex', alignItems: 'center', gap: 5,
             }}>
               📎 {f.name}
               <button onClick={() => removeFile(f.name)}
-                style={{ background: 'none', border: 'none', color: '#6a5830', cursor: 'pointer', padding: 0, fontSize: '0.7rem', lineHeight: 1 }}>×</button>
+                style={{ background: 'none', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: 0, fontSize: '0.7rem', lineHeight: 1 }}>×</button>
             </span>
           ))}
         </div>
@@ -118,8 +118,8 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
       <div
         onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}
         style={{
-          background: '#0a0800',
-          border: `1px solid ${dragging ? color : '#2a2010'}`,
+          background: 'var(--bg1)',
+          border: `1px solid ${dragging ? color : 'var(--border)'}`,
           borderRadius: 10, padding: '10px 14px',
           transition: 'border-color 0.15s',
           boxShadow: dragging ? `0 0 16px ${color}22` : 'none',
@@ -136,7 +136,7 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
           rows={1}
           style={{
             width: '100%', background: 'none', border: 'none', outline: 'none',
-            color: '#c8bfa8', fontSize: '0.88rem', lineHeight: 1.6,
+            color: 'var(--text)', fontSize: '0.88rem', lineHeight: 1.6,
             resize: 'none', fontFamily: 'inherit', minHeight: 36,
           }}
         />
@@ -147,8 +147,8 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
               onClick={() => fileInputRef.current?.click()}
               title="Attach file"
               style={{
-                background: 'none', border: '1px solid #2a2010', borderRadius: 4,
-                color: '#6a5830', cursor: 'pointer', fontSize: '0.75rem', padding: '3px 8px',
+                background: 'none', border: '1px solid var(--border)', borderRadius: 4,
+                color: 'var(--text-dim)', cursor: 'pointer', fontSize: '0.75rem', padding: '3px 8px',
               }}
             >📎</button>
             <input
@@ -157,7 +157,7 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
               onChange={e => e.target.files && addFiles(Array.from(e.target.files))}
             />
             <ModelSelector value={provider} onChange={onProviderChange} />
-            <span style={{ fontSize: '0.6rem', color: '#3a2e10' }}>
+            <span style={{ fontSize: '0.6rem', color: 'var(--border-bright)' }}>
               {dragging ? 'DROP TO ATTACH' : '⌘⏎ to send'}
             </span>
           </div>
@@ -166,10 +166,10 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
             <button
               onClick={onStop}
               style={{
-                background: '#1a0800', border: '1px solid #ff6b3555',
-                color: '#ff6b35', borderRadius: 6, padding: '6px 16px',
+                background: '#1a0800', border: '1px solid var(--orange)55',
+                color: 'var(--orange)', borderRadius: 6, padding: '6px 16px',
                 cursor: 'pointer', fontSize: '0.72rem',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: 'var(--font-mono)',
               }}
             >■ STOP</button>
           ) : (
@@ -177,13 +177,13 @@ export function Omnibar({ onSend, loading, onStop, modeObj, provider, onProvider
               onClick={handleSend}
               disabled={!input.trim() && files.length === 0}
               style={{
-                background: input.trim() || files.length > 0 ? `${color}22` : '#0a0800',
-                border: `1px solid ${input.trim() || files.length > 0 ? color + '88' : '#2a2010'}`,
-                color: input.trim() || files.length > 0 ? color : '#3a2e10',
+                background: input.trim() || files.length > 0 ? `${color}22` : 'var(--bg1)',
+                border: `1px solid ${input.trim() || files.length > 0 ? color + '88' : 'var(--border)'}`,
+                color: input.trim() || files.length > 0 ? color : 'var(--border-bright)',
                 borderRadius: 6, padding: '6px 18px',
                 cursor: input.trim() || files.length > 0 ? 'pointer' : 'default',
                 fontSize: '0.72rem', transition: 'all 0.15s',
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: 'var(--font-mono)',
               }}
             >SEND ▶</button>
           )}

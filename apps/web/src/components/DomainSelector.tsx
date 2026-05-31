@@ -1,16 +1,16 @@
 import { useState } from 'react';
 
 const DOMAINS = [
-  { id: 'algebraic_number_theory',  label: 'Algebraic Number Theory',   icon: 'ℤ', color: '#f0a500' },
-  { id: 'algebraic_topology',       label: 'Algebraic Topology',        icon: '⊙', color: '#e05aff' },
-  { id: 'differential_geometry',    label: 'Differential Geometry',     icon: '∇', color: '#00c8ff' },
-  { id: 'pde',                      label: 'Partial Diff. Equations',   icon: '∂', color: '#7cff6b' },
-  { id: 'functional_analysis',      label: 'Functional Analysis',       icon: '∧', color: '#00e5b0' },
-  { id: 'quantum_math',             label: 'Quantum Mathematics',       icon: 'Ψ', color: '#e05aff' },
-  { id: 'combinatorics_graph',      label: 'Combinatorics & Graphs',    icon: '△', color: '#ff6b35' },
-  { id: 'complexity_theory',        label: 'Complexity Theory',         icon: 'Σ', color: '#00c8ff' },
-  { id: 'cryptographic_math',       label: 'Cryptographic Math',        icon: '🔐', color: '#7cff6b' },
-  { id: 'mathematical_physics',     label: 'Mathematical Physics',      icon: '∞', color: '#f0a500' },
+  { id: 'algebraic_number_theory',  label: 'Algebraic Number Theory',   icon: 'ℤ', color: 'var(--gold)' },
+  { id: 'algebraic_topology',       label: 'Algebraic Topology',        icon: '⊙', color: 'var(--purple)' },
+  { id: 'differential_geometry',    label: 'Differential Geometry',     icon: '∇', color: 'var(--blue)' },
+  { id: 'pde',                      label: 'Partial Diff. Equations',   icon: '∂', color: 'var(--green)' },
+  { id: 'functional_analysis',      label: 'Functional Analysis',       icon: '∧', color: 'var(--teal)' },
+  { id: 'quantum_math',             label: 'Quantum Mathematics',       icon: 'Ψ', color: 'var(--purple)' },
+  { id: 'combinatorics_graph',      label: 'Combinatorics & Graphs',    icon: '△', color: 'var(--orange)' },
+  { id: 'complexity_theory',        label: 'Complexity Theory',         icon: 'Σ', color: 'var(--blue)' },
+  { id: 'cryptographic_math',       label: 'Cryptographic Math',        icon: '🔐', color: 'var(--green)' },
+  { id: 'mathematical_physics',     label: 'Mathematical Physics',      icon: '∞', color: 'var(--gold)' },
 ];
 
 interface DomainSelectorProps {
@@ -26,7 +26,7 @@ export function DomainSelector({
   onSelect,
   isProofMode,
   onToggleProof,
-  accentColor = '#e05aff',
+  accentColor = 'var(--purple)',
 }: DomainSelectorProps) {
   const [open, setOpen] = useState(false);
   const current = DOMAINS.find(d => d.id === activeDomain) || DOMAINS[0];
@@ -63,10 +63,10 @@ export function DomainSelector({
         style={{
           marginLeft: 6,
           background: isProofMode ? `${accentColor}25` : 'transparent',
-          border: `1px solid ${isProofMode ? accentColor : '#2a2010'}`,
+          border: `1px solid ${isProofMode ? accentColor : 'var(--border)'}`,
           borderRadius: 6,
           padding: '5px 10px',
-          color: isProofMode ? accentColor : '#4a3820',
+          color: isProofMode ? accentColor : 'var(--text-muted)',
           cursor: 'pointer',
           fontSize: '0.65rem',
           letterSpacing: '0.06em',
@@ -84,8 +84,8 @@ export function DomainSelector({
             top: '110%',
             left: 0,
             zIndex: 100,
-            background: '#0e0c04',
-            border: '1px solid #2a2010',
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
             borderRadius: 8,
             minWidth: 260,
             boxShadow: '0 8px 32px rgba(0,0,0,0.7)',
@@ -105,7 +105,7 @@ export function DomainSelector({
                 background: activeDomain === d.id ? `${d.color}15` : 'transparent',
                 border: 'none',
                 borderLeft: activeDomain === d.id ? `2px solid ${d.color}` : '2px solid transparent',
-                color: activeDomain === d.id ? d.color : '#6a5830',
+                color: activeDomain === d.id ? d.color : 'var(--text-dim)',
                 cursor: 'pointer',
                 fontSize: '0.68rem',
                 letterSpacing: '0.05em',

@@ -11,14 +11,14 @@ import type { Message, Mode, Plan, Session } from '../state/types';
 import type { ProviderOption } from '../components/ModelSelector';
 
 const MODES: Mode[] = [
-  { id: 'scientist',   icon: '◈', label: 'Scientist',    color: '#f0a500', desc: 'Cross-domain research & discovery' },
-  { id: 'formula',     icon: '∿', label: 'Formula Lab',  color: '#00e5b0', desc: 'Build, mutate & translate formulas' },
-  { id: 'hypothesis',  icon: '⬡', label: 'Hypothesis',   color: '#e05aff', desc: 'Generate & test hypotheses' },
-  { id: 'solve',       icon: '∂', label: 'Deep Solve',   color: '#00c8ff', desc: 'Rigorous step-by-step solutions' },
-  { id: 'synergy',     icon: '⊗', label: 'Synergy',      color: '#ff6b35', desc: 'Hidden cross-domain connections' },
-  { id: 'probability', icon: '🎲', label: 'Probability', color: '#e05aff', desc: 'Monte Carlo, Bayes, stochastic' },
-  { id: 'files',       icon: '◫', label: 'File Intel',   color: '#7cff6b', desc: 'Analyze documents & datasets' },
-  { id: 'domain',      icon: '∫', label: 'Domain Expert',color: '#e05aff', desc: 'Advanced mathematics specialist' },
+  { id: 'scientist',   icon: '◈', label: 'Scientist',    color: 'var(--gold)', desc: 'Cross-domain research & discovery' },
+  { id: 'formula',     icon: '∿', label: 'Formula Lab',  color: 'var(--teal)', desc: 'Build, mutate & translate formulas' },
+  { id: 'hypothesis',  icon: '⬡', label: 'Hypothesis',   color: 'var(--purple)', desc: 'Generate & test hypotheses' },
+  { id: 'solve',       icon: '∂', label: 'Deep Solve',   color: 'var(--blue)', desc: 'Rigorous step-by-step solutions' },
+  { id: 'synergy',     icon: '⊗', label: 'Synergy',      color: 'var(--orange)', desc: 'Hidden cross-domain connections' },
+  { id: 'probability', icon: '🎲', label: 'Probability', color: 'var(--purple)', desc: 'Monte Carlo, Bayes, stochastic' },
+  { id: 'files',       icon: '◫', label: 'File Intel',   color: 'var(--green)', desc: 'Analyze documents & datasets' },
+  { id: 'domain',      icon: '∫', label: 'Domain Expert',color: 'var(--purple)', desc: 'Advanced mathematics specialist' },
 ];
 
 export default function App() {
@@ -233,7 +233,7 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#060400', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden' }}>
       <div style={{
         position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
         backgroundImage: `linear-gradient(rgba(240,165,0,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(240,165,0,0.025) 1px, transparent 1px)`,
@@ -243,7 +243,7 @@ export default function App() {
 
       <header style={{
         padding: '0 20px', height: 52,
-        borderBottom: '1px solid #1e1808',
+        borderBottom: '1px solid var(--border-dim)',
         background: 'rgba(6,4,0,0.97)',
         backdropFilter: 'blur(12px)',
         position: 'sticky', top: 0, zIndex: 20,
@@ -252,17 +252,17 @@ export default function App() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button onClick={() => setDrawerOpen(d => !d)} style={{
-            background: 'none', border: '1px solid #2a2010',
+            background: 'none', border: '1px solid var(--border)',
             borderRadius: 5, padding: '4px 8px',
-            color: '#4a3820', cursor: 'pointer', fontSize: '0.65rem',
+            color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.65rem',
           }}>☰</button>
           <div style={{
-            fontFamily: "'Libre Baskerville', serif",
+            fontFamily: 'var(--font-serif)',
             fontWeight: 700, fontSize: '1rem',
-            color: '#f0a500', letterSpacing: '0.04em',
+            color: 'var(--gold)', letterSpacing: '0.04em',
             animation: 'breathe 4s ease-in-out infinite',
           }}>MATH X</div>
-          <div style={{ fontSize: '0.55rem', color: '#3a2e10', letterSpacing: '0.18em' }}>CROSS-DOMAIN INTELLIGENCE</div>
+          <div style={{ fontSize: '0.55rem', color: 'var(--border-bright)', letterSpacing: '0.18em' }}>CROSS-DOMAIN INTELLIGENCE</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Dot active={pyReady} label="WASM" />
@@ -271,9 +271,9 @@ export default function App() {
           {messages.length > 0 && (
             <button
               onClick={startNewSession}
-              style={{ background: 'none', border: '1px solid #2a2010', borderRadius: 4, padding: '2px 9px', color: '#4a3820', cursor: 'pointer', fontSize: '0.6rem', letterSpacing: '0.1em' }}
-              onMouseEnter={e => { (e.target as HTMLButtonElement).style.color = '#ff6b35'; }}
-              onMouseLeave={e => { (e.target as HTMLButtonElement).style.color = '#4a3820'; }}
+              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 9px', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.6rem', letterSpacing: '0.1em' }}
+              onMouseEnter={e => { (e.target as HTMLButtonElement).style.color = 'var(--orange)'; }}
+              onMouseLeave={e => { (e.target as HTMLButtonElement).style.color = 'var(--text-muted)'; }}
             >NEW</button>
           )}
         </div>
@@ -281,7 +281,7 @@ export default function App() {
 
       <div style={{
         display: 'flex', overflowX: 'auto',
-        background: '#080600', borderBottom: '1px solid #1e1808',
+        background: 'var(--bg)', borderBottom: '1px solid var(--border-dim)',
         position: 'sticky', top: 52, zIndex: 15,
         padding: '0 8px', flexShrink: 0,
       }}>
@@ -291,7 +291,7 @@ export default function App() {
             background: activeMode === m.id ? `${m.color}10` : 'transparent',
             border: 'none',
             borderBottom: activeMode === m.id ? `2px solid ${m.color}` : '2px solid transparent',
-            color: activeMode === m.id ? m.color : '#4a3820',
+            color: activeMode === m.id ? m.color : 'var(--text-muted)',
             cursor: 'pointer', fontSize: '0.7rem',
             fontWeight: activeMode === m.id ? 500 : 400,
             whiteSpace: 'nowrap', letterSpacing: '0.06em',
@@ -341,11 +341,11 @@ function Dot({ active, label, pulse }: { active: boolean; label: string; pulse?:
     <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
       <div style={{
         width: 5, height: 5, borderRadius: '50%',
-        background: active ? '#7cff6b' : '#3a3020',
-        boxShadow: active ? '0 0 5px #7cff6b' : 'none',
+        background: active ? 'var(--green)' : '#3a3020',
+        boxShadow: active ? '0 0 5px var(--green)' : 'none',
         animation: pulse && active ? 'breathe 2s ease-in-out infinite' : 'none',
       }} />
-      <span style={{ fontSize: '0.58rem', color: '#3a2e10', letterSpacing: '0.1em' }}>{label}</span>
+      <span style={{ fontSize: '0.58rem', color: 'var(--border-bright)', letterSpacing: '0.1em' }}>{label}</span>
     </div>
   );
 }

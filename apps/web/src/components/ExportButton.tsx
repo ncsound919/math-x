@@ -80,9 +80,9 @@ export function ExportButton({ content, accent }: ExportButtonProps) {
 
   const btn: React.CSSProperties = {
     display: 'block', width: '100%', textAlign: 'left',
-    background: 'none', border: 'none', color: '#c8bfa8',
+    background: 'none', border: 'none', color: 'var(--text)',
     padding: '5px 10px', cursor: 'pointer', fontSize: '0.65rem',
-    fontFamily: "'JetBrains Mono', monospace",
+    fontFamily: 'var(--font-mono)',
     whiteSpace: 'nowrap',
   };
 
@@ -93,10 +93,10 @@ export function ExportButton({ content, accent }: ExportButtonProps) {
         title="Export"
         style={{
           background: 'none', border: `1px solid ${accent}33`,
-          color: copied ? accent : '#4a3820',
+          color: copied ? accent : 'var(--text-muted)',
           cursor: 'pointer', fontSize: '0.6rem',
           padding: '2px 8px', borderRadius: 4,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: 'var(--font-mono)',
           transition: 'color 0.2s',
         }}
       >
@@ -105,13 +105,13 @@ export function ExportButton({ content, accent }: ExportButtonProps) {
       {open && (
         <div style={{
           position: 'absolute', bottom: '110%', left: 0,
-          background: '#0d0b00', border: `1px solid ${accent}44`,
+          background: 'var(--bg2)', border: `1px solid ${accent}44`,
           borderRadius: 6, padding: '4px 0', zIndex: 20,
           minWidth: 150, boxShadow: '0 4px 20px rgba(0,0,0,0.7)',
         }}>
-          <button style={btn} onMouseEnter={e => { (e.target as HTMLElement).style.background = '#1a1408'; }} onMouseLeave={e => { (e.target as HTMLElement).style.background = 'none'; }} onClick={copyLatex}>📋 Copy as LaTeX</button>
-          <button style={btn} onMouseEnter={e => { (e.target as HTMLElement).style.background = '#1a1408'; }} onMouseLeave={e => { (e.target as HTMLElement).style.background = 'none'; }} onClick={downloadNotebook}>📓 Download .ipynb</button>
-          <button style={btn} onMouseEnter={e => { (e.target as HTMLElement).style.background = '#1a1408'; }} onMouseLeave={e => { (e.target as HTMLElement).style.background = 'none'; }} onClick={copyText}>📝 Copy plain text</button>
+          <button style={btn} onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--bg4)'; }} onMouseLeave={e => { (e.target as HTMLElement).style.background = 'none'; }} onClick={copyLatex}>📋 Copy as LaTeX</button>
+          <button style={btn} onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--bg4)'; }} onMouseLeave={e => { (e.target as HTMLElement).style.background = 'none'; }} onClick={downloadNotebook}>📓 Download .ipynb</button>
+          <button style={btn} onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--bg4)'; }} onMouseLeave={e => { (e.target as HTMLElement).style.background = 'none'; }} onClick={copyText}>📝 Copy plain text</button>
         </div>
       )}
     </div>

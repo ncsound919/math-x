@@ -77,7 +77,7 @@ export function ParameterSliders({ code, onParamsChange, accent, running = false
     <div style={{
       marginTop: 10,
       padding: '10px 14px',
-      background: '#0d0b00',
+      background: 'var(--bg2)',
       border: `1px solid ${accent}33`,
       borderRadius: 6,
     }}>
@@ -87,7 +87,7 @@ export function ParameterSliders({ code, onParamsChange, accent, running = false
       }}>
         <span style={{ fontSize: '0.6rem', color: accent, letterSpacing: '0.12em' }}>PARAMETERS</span>
         {running && (
-          <span style={{ fontSize: '0.6rem', color: '#4a3820' }}>RUNNING…</span>
+          <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>RUNNING…</span>
         )}
       </div>
       <div style={{
@@ -100,8 +100,8 @@ export function ParameterSliders({ code, onParamsChange, accent, running = false
           return (
             <div key={s.name}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                <label style={{ fontSize: '0.62rem', color: '#6a5a3a', fontFamily: "'JetBrains Mono', monospace" }}>{s.name}</label>
-                <span style={{ fontSize: '0.62rem', color: '#c8bfa8', fontFamily: "'JetBrains Mono', monospace" }}>
+                <label style={{ fontSize: '0.62rem', color: 'var(--text-dim)', fontFamily: 'var(--font-mono)' }}>{s.name}</label>
+                <span style={{ fontSize: '0.62rem', color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>
                   {Number.isInteger(s.step) ? Math.round(current) : current.toFixed(2)}
                 </span>
               </div>

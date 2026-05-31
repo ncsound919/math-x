@@ -24,12 +24,12 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
         onClick={() => setOpen(o => !o)}
         style={{
           background: 'var(--bg3)',
-          border: '1px solid #3a2e10',
+          border: '1px solid var(--border-bright)',
           borderRadius: 6,
           padding: '4px 10px',
           color: 'var(--gold)',
           fontSize: '0.75rem',
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: 'var(--font-mono)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -47,7 +47,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
           top: '110%',
           left: 0,
           background: 'var(--bg2)',
-          border: '1px solid #3a2e10',
+          border: '1px solid var(--border-bright)',
           borderRadius: 8,
           padding: 6,
           zIndex: 100,
@@ -62,7 +62,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
                 display: 'flex',
                 flexDirection: 'column',
                 width: '100%',
-                background: value === p.value ? '#2a1f08' : 'transparent',
+                background: value === p.value ? 'var(--border)' : 'transparent',
                 border: 'none',
                 borderRadius: 6,
                 padding: '7px 10px',
@@ -71,7 +71,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
                 marginBottom: 2,
               }}
             >
-              <span style={{ color: 'var(--gold)', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.78rem' }}>
+              <span style={{ color: 'var(--gold)', fontFamily: 'var(--font-mono)', fontSize: '0.78rem' }}>
                 {p.icon} {p.label}
               </span>
               <span style={{ color: 'var(--text-dim)', fontSize: '0.68rem', marginTop: 2 }}>{p.desc}</span>

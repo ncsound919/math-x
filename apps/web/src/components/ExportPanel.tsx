@@ -136,7 +136,7 @@ function generateIpynb(messages: Message[], sessionName: string): string {
 
 // ---- Component ----
 
-export function ExportPanel({ messages, modeColor = '#00e5b0', sessionName = 'Math X Session', apiBase = '/api' }: ExportPanelProps) {
+export function ExportPanel({ messages, modeColor = 'var(--teal)', sessionName = 'Math X Session', apiBase = '/api' }: ExportPanelProps) {
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<ExportFormat | null>(null);
@@ -220,10 +220,10 @@ export function ExportPanel({ messages, modeColor = '#00e5b0', sessionName = 'Ma
             onClick={() => handleExport(f.id)}
             style={{
               padding: '4px 10px',
-              background: done === f.id ? `${modeColor}22` : '#0a0800',
-              border: `1px solid ${done === f.id ? modeColor : '#2a2010'}`,
+              background: done === f.id ? `${modeColor}22` : 'var(--bg1)',
+              border: `1px solid ${done === f.id ? modeColor : 'var(--border)'}`,
               borderRadius: 14,
-              color: done === f.id ? modeColor : exporting === f.id ? '#2a2010' : '#5a4a20',
+              color: done === f.id ? modeColor : exporting === f.id ? 'var(--border)' : '#5a4a20',
               cursor: exporting === f.id ? 'wait' : 'pointer',
               fontSize: '0.63rem',
               letterSpacing: '0.04em',
@@ -235,7 +235,7 @@ export function ExportPanel({ messages, modeColor = '#00e5b0', sessionName = 'Ma
           >
             <span>{f.icon}</span>
             <span>{done === f.id ? '✓ ' : ''}{f.label}</span>
-            <span style={{ fontSize: '0.55rem', color: '#3a2e10' }}>.{f.ext}</span>
+            <span style={{ fontSize: '0.55rem', color: 'var(--border-bright)' }}>.{f.ext}</span>
           </button>
         ))}
       </div>

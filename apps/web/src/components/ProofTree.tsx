@@ -28,23 +28,23 @@ const NODE_COLORS: Record<ProofNode['type'], string> = {
 };
 
 const NODE_BORDERS: Record<ProofNode['type'], string> = {
-  hypothesis:  '#f0a500',
+  hypothesis:  'var(--gold)',
   step:        '#4a9eff',
-  conclusion:  '#7cff6b',
+  conclusion:  'var(--green)',
   dead_end:    '#ff4444',
 };
 
 function verifiedColor(v: boolean | null | undefined): string {
-  if (v === true)  return '#7cff6b';
+  if (v === true)  return 'var(--green)';
   if (v === false) return '#ff4444';
-  return '#6a5a3a';
+  return 'var(--text-dim)';
 }
 
 // Custom node renderer
 function ProofNodeComponent({ data, id }: NodeProps) {
   const node = data as ProofNode & { onVerify: (id: string) => void; onDelete: (id: string) => void; onTypeChange: (id: string, t: ProofNode['type']) => void };
-  const border = NODE_BORDERS[node.type] || '#4a3820';
-  const bg = NODE_COLORS[node.type] || '#0a0800';
+  const border = NODE_BORDERS[node.type] || 'var(--text-muted)';
+  const bg = NODE_COLORS[node.type] || 'var(--bg1)';
 
   return (
     <div style={{
@@ -64,7 +64,7 @@ function ProofNodeComponent({ data, id }: NodeProps) {
         <select
           value={node.type}
           onChange={e => node.onTypeChange(id, e.target.value as ProofNode['type'])}
-          style={{ background: 'transparent', border: 'none', color: border, fontSize: '0.6rem', cursor: 'pointer', fontFamily: "'JetBrains Mono', monospace" }}
+          style={{ background: 'transparent', border: 'none', color: border, fontSize: '0.6rem', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}
         >
           <option value="hypothesis">HYPOTHESIS</option>
           <option value="step">STEP</option>
@@ -79,9 +79,9 @@ function ProofNodeComponent({ data, id }: NodeProps) {
       {/* Statement */}
       <div style={{
         fontSize: '0.78rem',
-        color: '#c8bfa8',
+        color: 'var(--text)',
         lineHeight: 1.5,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: 'var(--font-mono)',
         wordBreak: 'break-word',
       }}>
         {node.statement}
@@ -93,14 +93,14 @@ function ProofNodeComponent({ data, id }: NodeProps) {
           onClick={() => node.onVerify(id)}
           style={{
             fontSize: '0.58rem', background: '#1a2a1a', border: '1px solid #2a4a2a',
-            color: '#7cff6b', borderRadius: 3, padding: '2px 7px', cursor: 'pointer',
+            color: 'var(--green)', borderRadius: 3, padding: '2px 7px', cursor: 'pointer',
           }}
         >VERIFY</button>
         <button
           onClick={() => node.onDelete(id)}
           style={{
             fontSize: '0.58rem', background: '#2a1a1a', border: '1px solid #4a2a2a',
-            color: '#ff6b35', borderRadius: 3, padding: '2px 7px', cursor: 'pointer',
+            color: 'var(--orange)', borderRadius: 3, padding: '2px 7px', cursor: 'pointer',
           }}
         >× DELETE</button>
       </div>
@@ -114,7 +114,7 @@ const nodeTypes = { proofNode: ProofNodeComponent };
 
 let idCounter = 100;
 
-export function ProofTree({ accent = '#f0a500', onNodeVerify }: ProofTreeProps) {
+export function ProofTree({ accent = 'var(--gold)', onNodeVerify }: ProofTreeProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [newStatement, setNewStatement] = useState('');
@@ -187,7 +187,7 @@ export function ProofTree({ accent = '#f0a500', onNodeVerify }: ProofTreeProps) 
       }}>
         <span style={{ fontSize: '0.65rem', color: accent, letterSpacing: '0.12em' }}>PROOF TREE</span>
         {totalNodes > 0 && (
-          <span style={{ fontSize: '0.6rem', color: '#6a5a3a' }}>
+          <span style={{ fontSize: '0.6rem', color: 'var(--text-dim)' }}>
             {totalNodes} nodes • {verifiedCount} ✓ • {failedCount} ✗
           </span>
         )}
@@ -198,9 +198,9 @@ export function ProofTree({ accent = '#f0a500', onNodeVerify }: ProofTreeProps) 
             onKeyDown={e => e.key === 'Enter' && addNode()}
             placeholder="Add statement or expression…"
             style={{
-              flex: 1, background: '#0a0800', border: '1px solid #2a2010',
-              borderRadius: 4, padding: '4px 8px', color: '#c8bfa8',
-              fontSize: '0.75rem', fontFamily: "'JetBrains Mono', monospace",
+              flex: 1, background: 'var(--bg1)', border: '1px solid var(--border)',
+              borderRadius: 4, padding: '4px 8px', color: 'var(--text)',
+              fontSize: '0.75rem', fontFamily: 'var(--font-mono)',
               outline: 'none',
             }}
           />
@@ -208,8 +208,8 @@ export function ProofTree({ accent = '#f0a500', onNodeVerify }: ProofTreeProps) 
             value={newType}
             onChange={e => setNewType(e.target.value as ProofNode['type'])}
             style={{
-              background: '#0a0800', border: '1px solid #2a2010',
-              borderRadius: 4, padding: '4px 6px', color: '#c8bfa8',
+              background: 'var(--bg1)', border: '1px solid var(--border)',
+              borderRadius: 4, padding: '4px 6px', color: 'var(--text)',
               fontSize: '0.7rem', cursor: 'pointer',
             }}
           >
@@ -221,7 +221,7 @@ export function ProofTree({ accent = '#f0a500', onNodeVerify }: ProofTreeProps) 
           <button
             onClick={addNode}
             style={{
-              background: '#1a1408', border: `1px solid ${accent}55`,
+              background: 'var(--bg4)', border: `1px solid ${accent}55`,
               color: accent, borderRadius: 4, padding: '4px 12px',
               cursor: 'pointer', fontSize: '0.7rem',
             }}
@@ -243,11 +243,11 @@ export function ProofTree({ accent = '#f0a500', onNodeVerify }: ProofTreeProps) 
           style={{ background: '#050300' }}
           defaultEdgeOptions={{ animated: true, style: { stroke: accent, strokeWidth: 1.5 } }}
         >
-          <Background color="#1a1408" gap={20} size={1} />
-          <Controls style={{ background: '#0a0800', border: '1px solid #2a2010' }} />
+          <Background color="var(--bg4)" gap={20} size={1} />
+          <Controls style={{ background: 'var(--bg1)', border: '1px solid var(--border)' }} />
           <MiniMap
-            style={{ background: '#050300', border: '1px solid #2a2010' }}
-            nodeColor={(n) => NODE_BORDERS[n.data?.type as ProofNode['type']] || '#4a3820'}
+            style={{ background: '#050300', border: '1px solid var(--border)' }}
+            nodeColor={(n) => NODE_BORDERS[n.data?.type as ProofNode['type']] || 'var(--text-muted)'}
           />
         </ReactFlow>
       </div>

@@ -9,7 +9,7 @@ interface PlotViewProps {
   accentColor?: string;
 }
 
-export function PlotView({ spec, accentColor = '#f0a500' }: PlotViewProps) {
+export function PlotView({ spec, accentColor = 'var(--gold)' }: PlotViewProps) {
   const divRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -26,13 +26,13 @@ export function PlotView({ spec, accentColor = '#f0a500' }: PlotViewProps) {
 
         // Deep-clone and inject dark theme defaults
         const layout = {
-          paper_bgcolor: '#080600',
-          plot_bgcolor: '#0a0800',
-          font: { color: '#c8bfa8', family: "'JetBrains Mono', monospace", size: 11 },
-          xaxis: { gridcolor: '#1e1808', zerolinecolor: '#2a2010' },
-          yaxis: { gridcolor: '#1e1808', zerolinecolor: '#2a2010' },
+          paper_bgcolor: 'var(--bg)',
+          plot_bgcolor: 'var(--bg1)',
+          font: { color: 'var(--text)', family: "'JetBrains Mono', monospace", size: 11 },
+          xaxis: { gridcolor: 'var(--border-dim)', zerolinecolor: 'var(--border)' },
+          yaxis: { gridcolor: 'var(--border-dim)', zerolinecolor: 'var(--border)' },
           margin: { t: 40, r: 20, b: 40, l: 50 },
-          colorway: [accentColor, '#00c8ff', '#7cff6b', '#e05aff', '#ff6b35', '#00e5b0'],
+          colorway: [accentColor, 'var(--blue)', 'var(--green)', 'var(--purple)', 'var(--orange)', 'var(--teal)'],
           ...(spec.layout ?? {}),
         };
 
@@ -59,7 +59,7 @@ export function PlotView({ spec, accentColor = '#f0a500' }: PlotViewProps) {
 
   if (error) {
     return (
-      <div style={{ padding: 10, color: '#ff6b35', fontSize: '0.75rem', fontFamily: "'JetBrains Mono', monospace" }}>
+      <div style={{ padding: 10, color: 'var(--orange)', fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
         Chart error: {error}
       </div>
     );
@@ -71,7 +71,7 @@ export function PlotView({ spec, accentColor = '#f0a500' }: PlotViewProps) {
         <div style={{
           position: 'absolute', inset: 0, display: 'flex',
           alignItems: 'center', justifyContent: 'center',
-          color: '#4a3820', fontSize: '0.7rem',
+          color: 'var(--text-muted)', fontSize: '0.7rem',
         }}>
           Loading chart…
         </div>

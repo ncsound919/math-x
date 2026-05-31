@@ -13,7 +13,7 @@ const WORKFLOW_TEMPLATES = [
     id: 'genomics_qc',
     icon: '🧬',
     label: 'Genomics QC',
-    color: '#7cff6b',
+    color: 'var(--green)',
     prompt: 'Run quality control analysis on the uploaded VCF/FASTQ/FASTA file. Report variant counts, read quality stats, GC content, and flag anomalies.',
     mode: 'files',
   },
@@ -21,7 +21,7 @@ const WORKFLOW_TEMPLATES = [
     id: 'lit_review',
     icon: '📚',
     label: 'Lit Review',
-    color: '#f0a500',
+    color: 'var(--gold)',
     prompt: 'Search PubMed and arXiv for the top 10 papers most relevant to this topic. Rank by relevance score and extract key findings.',
     mode: 'scientist',
   },
@@ -29,7 +29,7 @@ const WORKFLOW_TEMPLATES = [
     id: 'derive_verify',
     icon: '∂',
     label: 'Derive & Verify',
-    color: '#00c8ff',
+    color: 'var(--blue)',
     prompt: 'Derive this expression step-by-step using SymPy. Justify each transformation with a theorem or algebraic rule badge.',
     mode: 'solve',
   },
@@ -37,7 +37,7 @@ const WORKFLOW_TEMPLATES = [
     id: 'hypothesis_test',
     icon: '⬡',
     label: 'Hypothesis Test',
-    color: '#e05aff',
+    color: 'var(--purple)',
     prompt: 'Generate 3 testable hypotheses from this data. For each: state the null hypothesis, propose a statistical test, and estimate required sample size.',
     mode: 'hypothesis',
   },
@@ -45,7 +45,7 @@ const WORKFLOW_TEMPLATES = [
     id: 'monte_carlo',
     icon: '🎲',
     label: 'Monte Carlo',
-    color: '#ff6b35',
+    color: 'var(--orange)',
     prompt: 'Run a Monte Carlo simulation with 10,000 samples. Report mean, variance, 95% confidence interval, and plot the distribution.',
     mode: 'probability',
   },
@@ -53,7 +53,7 @@ const WORKFLOW_TEMPLATES = [
     id: 'cross_domain',
     icon: '⊗',
     label: 'Cross-Domain',
-    color: '#ff6b35',
+    color: 'var(--orange)',
     prompt: 'Identify hidden structural connections between this concept and 3 other scientific domains. Show the mathematical bridge.',
     mode: 'synergy',
   },
@@ -61,7 +61,7 @@ const WORKFLOW_TEMPLATES = [
     id: 'export_bundle',
     icon: '📦',
     label: 'Export Bundle',
-    color: '#00e5b0',
+    color: 'var(--teal)',
     prompt: 'Package all results from this session into a publication bundle: LaTeX equations, Jupyter notebook, BibTeX references, and DOCX summary.',
     mode: 'files',
   },
@@ -82,7 +82,7 @@ import { useState } from 'react'
 
 export function WorkflowTemplates({
   onApplyTemplate,
-  modeColor = '#f0a500',
+  modeColor = 'var(--gold)',
   activeMode: _activeMode,
   sessions = [],
   activeSessionId,
@@ -97,7 +97,7 @@ export function WorkflowTemplates({
     background: 'none',
     border: 'none',
     borderBottom: active ? `2px solid ${modeColor}` : '2px solid transparent',
-    color: active ? modeColor : '#4a3820',
+    color: active ? modeColor : 'var(--text-muted)',
     cursor: 'pointer',
     fontSize: '0.62rem',
     letterSpacing: '0.1em',
@@ -106,7 +106,7 @@ export function WorkflowTemplates({
 
   return (
     <div style={{ marginTop: 8, marginBottom: 4 }}>
-      <div style={{ display: 'flex', borderBottom: '1px solid #1e1808', marginBottom: 8 }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-dim)', marginBottom: 8 }}>
         <button style={tabStyle(tab === 'templates')} onClick={() => setTab('templates')}>⚡ TEMPLATES</button>
         <button style={tabStyle(tab === 'sessions')} onClick={() => setTab('sessions')}>
           ◷ SESSIONS {sessions.length > 0 && (
@@ -126,10 +126,10 @@ export function WorkflowTemplates({
               onMouseLeave={() => setHover(null)}
               style={{
                 padding: '5px 10px',
-                background: hover === t.id ? `${t.color}18` : '#0a0800',
-                border: `1px solid ${hover === t.id ? t.color : '#2a2010'}`,
+                background: hover === t.id ? `${t.color}18` : 'var(--bg1)',
+                border: `1px solid ${hover === t.id ? t.color : 'var(--border)'}`,
                 borderRadius: 16,
-                color: hover === t.id ? t.color : '#6a5a30',
+                color: hover === t.id ? t.color : 'var(--text-dim)',
                 cursor: 'pointer',
                 fontSize: '0.65rem',
                 letterSpacing: '0.05em',
@@ -149,7 +149,7 @@ export function WorkflowTemplates({
       {tab === 'sessions' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 180, overflowY: 'auto' }}>
           {sessions.length === 0 && (
-            <div style={{ color: '#3a2e10', fontSize: '0.62rem', textAlign: 'center', padding: '12px 0' }}>
+            <div style={{ color: 'var(--border-bright)', fontSize: '0.62rem', textAlign: 'center', padding: '12px 0' }}>
               No saved sessions yet. Start a conversation to auto-save.
             </div>
           )}
@@ -161,23 +161,23 @@ export function WorkflowTemplates({
                 alignItems: 'center',
                 gap: 6,
                 padding: '5px 8px',
-                background: activeSessionId === s.id ? `${modeColor}14` : '#080600',
-                border: `1px solid ${activeSessionId === s.id ? modeColor + '44' : '#1e1808'}`,
+                background: activeSessionId === s.id ? `${modeColor}14` : 'var(--bg)',
+                border: `1px solid ${activeSessionId === s.id ? modeColor + '44' : 'var(--border-dim)'}`,
                 borderRadius: 5,
               }}
             >
               <span style={{
                 fontSize: '0.58rem',
-                color: '#3a2e10',
+                color: 'var(--border-bright)',
                 flex: 1,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}>
-                <span style={{ color: '#6a5a30', marginRight: 4 }}>{s.mode?.toUpperCase()}</span>
+                <span style={{ color: 'var(--text-dim)', marginRight: 4 }}>{s.mode?.toUpperCase()}</span>
                 {s.name}
               </span>
-              <span style={{ fontSize: '0.55rem', color: '#2a2010', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.55rem', color: 'var(--border)', flexShrink: 0 }}>
                 {new Date(s.createdAt).toLocaleDateString()}
               </span>
               {onReplaySession && (
@@ -203,7 +203,7 @@ export function WorkflowTemplates({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#3a2010',
+                    color: 'var(--text-faint)',
                     fontSize: '0.6rem',
                     cursor: 'pointer',
                     padding: '0 2px',
