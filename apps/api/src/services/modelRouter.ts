@@ -16,6 +16,7 @@ export { selectProvider, checkOllamaHealth, maxTokensForMode, MODE_MAX_TOKENS } 
 import type { ModelProvider, UsageStats } from '@mathx/math-core'
 import { checkOllamaHealth } from '@mathx/math-core'
 import Anthropic from '@anthropic-ai/sdk'
+import { logger } from '../lib/logger'
 
 export interface RouterRequest {
   messages: Array<{
