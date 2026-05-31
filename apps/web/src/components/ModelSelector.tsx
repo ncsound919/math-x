@@ -23,11 +23,11 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
       <button
         onClick={() => setOpen(o => !o)}
         style={{
-          background: '#1a1408',
+          background: 'var(--bg3)',
           border: '1px solid #3a2e10',
           borderRadius: 6,
           padding: '4px 10px',
-          color: '#f0a500',
+          color: 'var(--gold)',
           fontSize: '0.75rem',
           fontFamily: "'JetBrains Mono', monospace",
           cursor: 'pointer',
@@ -46,7 +46,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
           position: 'absolute',
           top: '110%',
           left: 0,
-          background: '#111008',
+          background: 'var(--bg2)',
           border: '1px solid #3a2e10',
           borderRadius: 8,
           padding: 6,
@@ -71,10 +71,10 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
                 marginBottom: 2,
               }}
             >
-              <span style={{ color: '#f0a500', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.78rem' }}>
+              <span style={{ color: 'var(--gold)', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.78rem' }}>
                 {p.icon} {p.label}
               </span>
-              <span style={{ color: '#6a5c40', fontSize: '0.68rem', marginTop: 2 }}>{p.desc}</span>
+              <span style={{ color: 'var(--text-dim)', fontSize: '0.68rem', marginTop: 2 }}>{p.desc}</span>
             </button>
           ))}
         </div>

@@ -1,50 +1,107 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Libre+Baskerville:wght@400;700&family=JetBrains+Mono:wght@300;400;600&display=swap');
 
+/* ── Design tokens ─────────────────────────────────────────────────────────
+   Single source of truth for the Math X colour palette.
+   Components should reference these variables instead of hardcoded hex values.
+   The equivalent JS tokens live in packages/ui/src/index.ts.
+   ───────────────────────────────────────────────────────────────────────── */
 :root {
-  --gold: #f0a500;
-  --gold-dim: #8a5e00;
-  --teal: #00e5b0;
-  --purple: #e05aff;
-  --blue: #00c8ff;
-  --orange: #ff6b35;
-  --green: #7cff6b;
-  --bg: #060400;
-  --bg1: #0a0800;
-  --bg2: #0e0c07;
-  --bg3: #141008;
-  --border: #2a2010;
-  --text: #c8bfa8;
-  --text-dim: #6a5a3a;
+  /* Accent colours */
+  --gold:       #f0a500;
+  --gold-dim:   #8a5e00;
+  --teal:       #00e5b0;
+  --purple:     #e05aff;
+  --blue:       #00c8ff;
+  --orange:     #ff6b35;
+  --green:      #7cff6b;
+
+  /* Per-mode accent colours — used by mode-aware components */
+  --mode-scientist:   var(--gold);
+  --mode-formula:     var(--teal);
+  --mode-hypothesis:  var(--purple);
+  --mode-solve:       var(--blue);
+  --mode-deep-solve:  var(--blue);
+  --mode-synergy:     var(--orange);
+  --mode-probability: var(--purple);
+  --mode-files:       var(--green);
+  --mode-file-intel:  var(--green);
+  --mode-domain:      var(--purple);
+
+  /* Backgrounds */
+  --bg:   #060400;
+  --bg1:  #0a0800;
+  --bg2:  #0e0c07;
+  --bg3:  #141008;
+  --bg4:  #1a1408;
+
+  /* Borders */
+  --border:      #2a2010;
+  --border-dim:  #1e1808;
+  --border-bright: #3a2e10;
+
+  /* Text */
+  --text:       #c8bfa8;
+  --text-dim:   #6a5a3a;
+  --text-faint: #3a2e10;
+  --text-muted: #4a3820;
+
+  /* Functional */
+  --success: #7cff6b;
+  --error:   #ff4444;
+  --warning: #f0a500;
+
+  /* Typography */
+  --font-mono:  'JetBrains Mono', 'DM Mono', monospace;
+  --font-serif: 'Libre Baskerville', serif;
+  --font-body:  'DM Mono', 'JetBrains Mono', monospace;
+
+  /* Spacing */
+  --sp-xs:  4px;
+  --sp-sm:  8px;
+  --sp-md:  12px;
+  --sp-lg:  16px;
+  --sp-xl:  24px;
+  --sp-xxl: 32px;
+
+  /* Border radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
 }
 
+/* ── Reset ─────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'DM Mono', 'JetBrains Mono', monospace;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Scrollbars ─────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2a2010; border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
+/* ── Form elements ─────────────────────────────────────────────────────── */
 textarea { resize: none; outline: none; }
-button { font-family: inherit; }
+button   { font-family: inherit; }
 
+/* ── Animations ─────────────────────────────────────────────────────────── */
 @keyframes msgIn {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes breathe {
-  0%,100% { opacity: 0.6; } 50% { opacity: 1; }
+  0%,100% { opacity: 0.6; }
+  50%     { opacity: 1; }
 }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes blink   { 0%,49% { opacity: 1; } 50%,100% { opacity: 0; } }
 @keyframes gridPulse {
-  0%,100% { opacity: 0.03; } 50% { opacity: 0.06; }
+  0%,100% { opacity: 0.03; }
+  50%     { opacity: 0.06; }
 }
-@keyframes fadeIn {
-  from { opacity: 0; } to { opacity: 1; }
-}
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
