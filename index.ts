@@ -49,9 +49,15 @@ app.use('/api', limiter)
 
 // ---------------------------------------------------------------------------
 // Body parsing
+//
+// 10 MB covers: large PDB/FASTA files, base64-encoded images for OCR,
+// and Jupyter notebook exports. The previous 50 MB ceiling was unnecessarily
+// permissive and invited memory exhaustion attacks.
+// Adjust BODY_SIZE_LIMIT_MB in .env if a specific route legitimately needs more.
 // ---------------------------------------------------------------------------
-app.use(express.json({ limit: '50mb' }))
-app.use(express.urlencoded({ extended: true, limit: '50mb' }))
+const BODY_LIMIT = `${process.env.BODY_SIZE_LIMIT_MB ?? 10}mb`
+app.use(express.json({ limit: BODY_LIMIT }))
+app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }))
 app.use(requestLogger)
 
 // ---------------------------------------------------------------------------

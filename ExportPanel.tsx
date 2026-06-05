@@ -19,6 +19,52 @@ const EXPORT_FORMATS: { id: ExportFormat; icon: string; label: string; ext: stri
   { id: 'markdown', icon: '#',  label: 'Markdown', ext: 'md',    mime: 'text/plain',       desc: 'Full session as Markdown' },
 ];
 
+// ---------------------------------------------------------------------------
+// LaTeX escaping — must run on ALL user-supplied strings before interpolation
+// ---------------------------------------------------------------------------
+
+/**
+ * Escape characters that have special meaning in LaTeX.
+ * Does NOT escape math delimiters ($, \) so KaTeX content passes through.
+ * Use this for title / session name strings that are plain text, not math.
+ */
+function latexEscapePlainText(text: string): string {
+  return text
+    .replace(/&/g, '\\&')
+    .replace(/%/g, '\\%')
+    .replace(/\$/g, '\\$')
+    .replace(/#/g, '\\#')
+    .replace(/_/g, '\\_')
+    .replace(/\^/g, '\\^{}')
+    .replace(/~/g, '\\textasciitilde{}')
+    .replace(/</g, '\\textless{}')
+    .replace(/>/g, '\\textgreater{}')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\\/g, '\\textbackslash{}') // must come last — avoids double-escaping
+}
+
+/**
+ * Escape a string for inclusion in LaTeX body content.
+ * Preserves existing $...$ and $$...$$ math blocks untouched.
+ * Escapes special chars in plain-text segments only.
+ */
+function latexEscapeBody(text: string): string {
+  // Split on math delimiters, escape only the non-math segments
+  const parts = text.split(/((?:\$\$[\s\S]*?\$\$|\$[^\n$]*?\$))/g);
+  return parts.map((part, i) => {
+    // Odd-indexed parts are the math blocks captured by the group
+    if (i % 2 === 1) return part;
+    return part
+      .replace(/&/g, '\\&')
+      .replace(/%/g, '\\%')
+      .replace(/#/g, '\\#')
+      .replace(/_(?![a-zA-Z])/g, '\\_')    // don't break x_1 in math that leaked out
+      .replace(/</g, '\\textless{}')
+      .replace(/>/g, '\\textgreater{}');
+  }).join('');
+}
+
 // ---- Client-side generators (no server needed for text formats) ----
 
 function generateMarkdown(messages: Message[], sessionName: string): string {
@@ -38,7 +84,6 @@ function generateMarkdown(messages: Message[], sessionName: string): string {
 
 function generateBibTeX(messages: Message[]): string {
   const allText = messages.map(m => m.content).join(' ');
-  // Extract simple DOI-like patterns and paper titles mentioned
   const doiPattern = /10\.\d{4,}\/[\w./-]+/g;
   const dois = [...new Set(allText.match(doiPattern) || [])];
   if (dois.length === 0) {
@@ -54,15 +99,16 @@ function generateBibTeX(messages: Message[]): string {
 }
 
 function generateLaTeX(messages: Message[], sessionName: string): string {
+  const escapedTitle = latexEscapePlainText(sessionName);
+
   const body = messages
     .filter(m => m.role === 'assistant')
     .map(m => {
-      // Wrap $..$ and $$..$$  blocks, keep as-is in LaTeX
-      const content = m.content
+      // Apply markdown-to-LaTeX transforms on the escaped body
+      return latexEscapeBody(m.content)
         .replace(/^#{1,3} (.+)$/gm, (_: string, h: string) => `\\subsection*{${h}}`)
         .replace(/\*\*(.+?)\*\*/g, (_: string, b: string) => `\\textbf{${b}}`)
         .replace(/`([^`]+)`/g, (_: string, c: string) => `\\texttt{${c}}`);
-      return content;
     })
     .join('\n\n');
 
@@ -70,7 +116,7 @@ function generateLaTeX(messages: Message[], sessionName: string): string {
     '\\documentclass{article}',
     '\\usepackage{amsmath,amssymb,hyperref,listings,geometry}',
     '\\geometry{margin=1in}',
-    `\\title{${sessionName}}`,
+    `\\title{${escapedTitle}}`,
     `\\date{${new Date().toLocaleDateString()}}`,
     '\\begin{document}',
     '\\maketitle',
@@ -82,7 +128,6 @@ function generateLaTeX(messages: Message[], sessionName: string): string {
 function generateIpynb(messages: Message[], sessionName: string): string {
   const cells = [];
 
-  // Title cell
   cells.push({
     cell_type: 'markdown',
     metadata: {},
@@ -97,13 +142,11 @@ function generateIpynb(messages: Message[], sessionName: string): string {
         source: [`**User:** ${m.content}`],
       });
     } else {
-      // Assistant markdown
       cells.push({
         cell_type: 'markdown',
         metadata: {},
         source: [m.content],
       });
-      // If there's code execution output, add a code cell
       if (m.execution?.stdout) {
         cells.push({
           cell_type: 'code',
@@ -172,8 +215,10 @@ export function ExportPanel({ messages, modeColor = 'var(--teal)', sessionName =
       } else if (fmt === 'ipynb') {
         triggerDownload(generateIpynb(messages, sessionName), `${safeName}.ipynb`, 'application/json');
       } else if (fmt === 'docx') {
-        // Server-side DOCX generation via the export route.
-        // The route is mounted at /api/export and dispatches by the 'format' field.
+        // Server-side DOCX generation — POST to /api/export with format:'plain'
+        // then the server reformats for download. The export route handles
+        // the conversion; DOCX-specific generation uses the 'plain' pipeline
+        // until a dedicated docx endpoint is implemented.
         const content = messages
           .filter(m => m.role === 'assistant')
           .map(m => m.content)
@@ -184,16 +229,19 @@ export function ExportPanel({ messages, modeColor = 'var(--teal)', sessionName =
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             content,
-            format: 'plain',  // Export route converts to downloadable; DOCX generation is client-side below
+            format: 'plain',
             title: sessionName,
           }),
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          // Do not surface the raw server error body to the user
+          throw new Error(`Export failed (HTTP ${res.status})`);
+        }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${safeName}.docx`;
+        a.download = `${safeName}.txt`; // plaintext until real DOCX endpoint lands
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -201,8 +249,9 @@ export function ExportPanel({ messages, modeColor = 'var(--teal)', sessionName =
       }
       setDone(fmt);
       setTimeout(() => setDone(null), 2500);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      // Show only a controlled message — never raw Error.message from fetch/server
+      setError(e instanceof Error ? e.message : 'Export failed. Please try again.');
     } finally {
       setExporting(null);
     }

@@ -7,6 +7,24 @@ const DB_NAME = 'mathx-sessions';
 const STORE_NAME = 'sessions';
 const DB_VERSION = 1;
 
+// ---------------------------------------------------------------------------
+// ID generation — crypto.randomUUID() is available in all modern browsers
+// and in Node ≥ 19. For environments that don't have it (very old browsers
+// or tests), fall back to a timestamp + Math.random hybrid as a last resort.
+// ---------------------------------------------------------------------------
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `session-${crypto.randomUUID()}`;
+  }
+  // Fallback: combine timestamp + 128 bits of random (still better than
+  // Math.random() alone, but crypto.randomUUID is strongly preferred)
+  const timestamp = Date.now().toString(36);
+  const random = Array.from({ length: 4 }, () =>
+    Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0')
+  ).join('');
+  return `session-${timestamp}-${random}`;
+}
+
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open(DB_NAME, DB_VERSION);
@@ -27,7 +45,6 @@ export async function saveSessions(sessions: Session[]): Promise<void> {
     const db = await openDB();
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
-    // Clear and rewrite all — simple for now, can optimize to delta writes later
     await new Promise<void>((res, rej) => {
       const clearReq = store.clear();
       clearReq.onsuccess = () => res();
@@ -78,7 +95,7 @@ export async function deleteSession(id: string): Promise<void> {
 export function newSession(mode = 'scientist', domain?: string): Session {
   const now = Date.now();
   return {
-    id: `session-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    id: generateId(),
     name: `Session ${new Date(now).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`,
     mode,
     domain,
@@ -92,7 +109,7 @@ export function newSession(mode = 'scientist', domain?: string): Session {
 export function branchSession(parent: Session, atMessageIndex: number): Session {
   const now = Date.now();
   return {
-    id: `session-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    id: generateId(),
     name: `Fork → ${parent.name}`,
     mode: parent.mode,
     domain: parent.domain,
