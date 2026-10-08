@@ -1,0 +1,100 @@
+{
+  "records": [
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|74580860d86b90d6",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    },
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|d36a90b47539c3d0",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    },
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|dc705e1d433d9e4b",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    },
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|6bcb44a8980a56dc",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    },
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|bf607d4aee696901",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    },
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|13bde4395d5e8fbe",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    },
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|1fce27fe9a760597",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    },
+    {
+      "fingerprint": "dependencies|outdated-major|package.json|76746f0ecc2c8de8",
+      "source": "deps_freshness",
+      "category": "outdated-major",
+      "dimension": "dependencies",
+      "severity": "medium",
+      "file": "package.json",
+      "status": "open",
+      "firstSeen": "2026-10-07T21:58:27.062Z",
+      "lastSeen": "2026-10-07T21:58:27.062Z",
+      "seenCount": 1
+    }
+  ]
+}
