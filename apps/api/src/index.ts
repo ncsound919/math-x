@@ -1,8 +1,8 @@
+import 'dotenv/config' // must precede route imports: routes construct Anthropic clients at module load
 import express from 'express'
 import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
-import dotenv from 'dotenv'
 import { chatRouter }       from './routes/chat'
 import { codegenRouter }    from './routes/codegen'
 import { planRouter }       from './routes/plan'
@@ -17,8 +17,6 @@ import { modelsRouter }     from './routes/models'
 import { exportRouter }     from './routes/export'
 import { requireAuth, initAuth } from './middleware/auth'
 import { requestLogger, logger } from './lib/logger'
-
-dotenv.config()
 
 // Validate auth config at boot — throws in production if no keys set
 initAuth()

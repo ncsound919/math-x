@@ -14,7 +14,7 @@ router.post('/', async (req, res) => {
     const systemBase = isProofRequest ? PROOF_ASSISTANT_PROMPT : domainPrompt;
     
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
+      model: process.env.MODEL || 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       system: `${MATHX_SYSTEM}
 
@@ -22,9 +22,9 @@ ${systemBase}`,
       messages: [{ role: 'user', content: query }],
     });
 
-    const content = response.content[0];
-    if (content.type === 'text') {
-      res.json({ text: content.text });
+    const text = response.content.find((b) => b.type === 'text')?.text;
+    if (text !== undefined) {
+      res.json({ text });
     } else {
       res.status(500).json({ error: 'Unexpected response type' });
     }
