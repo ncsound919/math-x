@@ -82,7 +82,7 @@ export function sessionToLatex(session: Session): string {
       lines.push(stripMarkdown(msg.content));
       if (msg.plan) {
         lines.push('');
-        lines.push(`\\noindent\\textcolor{mathxgold}{\\textit{Engine: ${latexEscape(msg.plan.engine)} $|$ Domain: ${latexEscape(msg.plan.domain)} $|$ Complexity: ${latexEscape(msg.plan.complexity)}}}`);
+        lines.push(`\\noindent\\textcolor{mathxgold}{\\textit{Engine: ${latexEscape(msg.plan.engine)} $|$ Domain: ${latexEscape(msg.plan.domain || '')} $|$ Complexity: ${latexEscape(msg.plan.complexity || '')}}}`);
       }
       lines.push('');
     }

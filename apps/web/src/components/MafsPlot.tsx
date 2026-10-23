@@ -17,7 +17,7 @@ interface MafsPlotProps {
   height?: number;
 }
 
-function safeEval(expr: string): ((x: number) => number) | null {
+function safeEval(expr: string): ((x: number, t?: number, Math?: any) => number) | null {
   try {
     // eslint-disable-next-line no-new-func
     return new Function('x', 't', 'Math',
@@ -118,18 +118,6 @@ export function MafsPlot({ spec, accent = 'var(--gold)', height = 300 }: MafsPlo
         height={height}
         viewBox={{ x: [-6, 6], y: [-4, 4] }}
         preserveAspectRatio={false}
-        theme={{
-          foreground: 'var(--text)',
-          background: 'var(--bg)',
-          red: 'var(--orange)',
-          orange: accent,
-          green: 'var(--green)',
-          blue: '#4a9eff',
-          indigo: '#9b8bff',
-          violet: '#d48fff',
-          pink: '#ff8bbb',
-          white: '#f0e8d0',
-        } as any}
       >
         <Coordinates.Cartesian
           xAxis={{ labels: (n) => n !== 0 ? String(n) : '' }}

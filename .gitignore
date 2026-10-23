@@ -39,3 +39,6 @@ coverage/
 # Misc
 *.tsbuildinfo
 .cache/
+
+# Local worker credentials (never commit)
+apps/worker/KEY.txt

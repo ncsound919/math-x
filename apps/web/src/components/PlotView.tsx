@@ -37,7 +37,7 @@ export function PlotView({ spec, accentColor = 'var(--gold)' }: PlotViewProps) {
         };
 
         // Colour each trace with the accent if no colour set
-        const data = (spec.data ?? []).map((trace: Record<string, unknown>) => ({
+        const data = (spec.data ?? []).map((trace: any) => ({
           ...trace,
           ...(trace.type === 'scatter' && !trace.line ? { line: { color: accentColor } } : {}),
         }));

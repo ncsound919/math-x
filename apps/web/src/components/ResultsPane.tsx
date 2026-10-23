@@ -185,6 +185,25 @@ function MessageBubble({ msg, modeObj, compute }: { msg: Message; modeObj: Mode;
               />
             )}
             <MathRenderer text={msg.content} accent={modeObj.color} streaming={msg.streaming ?? false} />
+            {(msg.provenance && msg.provenance.length > 0 || (msg.retrieved && msg.retrieved.length > 0)) && (
+              <div style={{
+                marginTop: 10, padding: '8px 10px',
+                background: 'var(--bg2)', border: '1px solid var(--border-dim)',
+                borderRadius: 6, fontSize: '0.62rem',
+              }}>
+                <div style={{ color: 'var(--text-faint)', letterSpacing: '0.12em', marginBottom: 4 }}>📎 PROVENANCE</div>
+                {(msg.provenance || []).map((p, i) => (
+                  <div key={i} style={{ color: 'var(--text-muted)', marginBottom: 2 }}>
+                    • {p.kind}: {p.label}{p.url ? ` — ${p.url}` : ''}
+                  </div>
+                ))}
+                {(msg.retrieved || []).slice(0, 4).map((r, i) => (
+                  <div key={`r-${i}`} style={{ color: 'var(--text-muted)', marginBottom: 2 }}>
+                    • chunk: {r.source} (score {r.score.toFixed(2)})
+                  </div>
+                ))}
+              </div>
+            )}
             <div style={{
               marginTop: 10, paddingTop: 8, borderTop: '1px solid var(--border-dim)',
               display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap',

@@ -6,6 +6,7 @@
  * In production Docker builds, pass --build-arg VITE_API_KEY=<key>.
  */
 const API_KEY = import.meta.env.VITE_API_KEY as string | undefined
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) || ''
 
 function authHeaders(): HeadersInit {
   if (!API_KEY) {
@@ -26,7 +27,8 @@ function authHeaders(): HeadersInit {
  * Automatically injects Content-Type and Authorization headers.
  */
 export function apiFetch(url: string, init?: RequestInit): Promise<Response> {
-  return fetch(url, {
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+  return fetch(fullUrl, {
     ...init,
     headers: {
       ...authHeaders(),

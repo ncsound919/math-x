@@ -1,6 +1,7 @@
 // LiteraturePanel — search PubMed + arXiv from within Math X session.
 // Results inject into Claude context for literature-grounded answers.
 import { useState } from 'react';
+import { useEmbeddings } from '../hooks/useEmbeddings';
 
 interface Paper {
   id: string;
@@ -20,12 +21,16 @@ interface LiteraturePanelProps {
 }
 
 export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBase = '/api' }: LiteraturePanelProps) {
+  const { ingest, search: semanticSearch, ready: embedReady, warmup } = useEmbeddings();
   const [query, setQuery] = useState('');
   const [sources, setSources] = useState<{ pubmed: boolean; arxiv: boolean }>({ pubmed: true, arxiv: true });
   const [results, setResults] = useState<Paper[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [semQuery, setSemQuery] = useState('');
+  const [semResults, setSemResults] = useState<any[]>([]);
+  const [semLoading, setSemLoading] = useState(false);
 
   const search = async () => {
     if (!query.trim()) return;
@@ -39,12 +44,29 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
         body: JSON.stringify({ query, sources: sourcesArr, maxPerSource: 5 }),
       });
       const data = await res.json();
-      setResults(data.results || []);
+      const papers = data.results || [];
+      setResults(papers);
       if (data.errors?.length) setError(data.errors.join('; '));
+      // Ingest into local vector store for RAG
+      warmup().catch(() => {});
+      ingest(papers.map((p: any) => ({ id: p.id, text: `${p.title}\n${p.abstract}`, source: p.source, meta: { url: p.url, year: p.year } }))).catch(() => {});
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const runSemantic = async () => {
+    if (!semQuery.trim()) return;
+    setSemLoading(true);
+    try {
+      const hits = await semanticSearch(semQuery, 6);
+      setSemResults(hits);
+    } catch (e: any) {
+      setError(e?.message || 'semantic search failed');
+    } finally {
+      setSemLoading(false);
     }
   };
 
@@ -150,6 +172,30 @@ export function LiteraturePanel({ modeColor = '#F0A500', onInjectContext, apiBas
             </div>
           );
         })}
+      </div>
+
+      {/* Semantic search over ingested papers */}
+      <div style={{ marginTop: 12, padding: 10, background: 'var(--bg2)', borderRadius: 8, border: `1px solid ${modeColor}22` }}>
+        <div style={{ color: modeColor, fontSize: '0.6rem', letterSpacing: '0.12em', marginBottom: 6 }}>🧠 SEMANTIC RAG SEARCH {embedReady ? '●' : '○'}</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input value={semQuery} onChange={e => setSemQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && runSemantic()}
+            placeholder="Find similar papers by meaning..."
+            style={{ flex: 1, background: 'var(--bg1)', border: `1px solid ${modeColor}33`, borderRadius: 6, padding: '6px 10px', color: 'var(--text)', fontSize: '0.68rem', outline: 'none' }} />
+          <button onClick={runSemantic} disabled={semLoading}
+            style={{ background: modeColor, color: 'var(--bg1)', border: 'none', borderRadius: 6, padding: '6px 12px', fontSize: '0.62rem', fontWeight: 700, cursor: 'pointer' }}>
+            {semLoading ? '○' : 'FIND'}
+          </button>
+        </div>
+        {semResults.length > 0 && (
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 200, overflowY: 'auto' }}>
+            {semResults.map((h, i) => (
+              <div key={i} style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 6, padding: '6px 8px', fontSize: '0.62rem' }}>
+                <div style={{ color: 'var(--text)', fontWeight: 600 }}>{h.doc.source} · score {h.score.toFixed(3)}</div>
+                <div style={{ color: 'var(--text-muted)', marginTop: 2 }}>{h.doc.text.slice(0, 120)}…</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Inject selected into context */}

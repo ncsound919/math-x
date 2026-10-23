@@ -1,0 +1,13 @@
+name = "mathx-api"
+main = "src/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+ALLOWED_ORIGINS = "http://localhost:3000"
+
+# Secrets (set via `wrangler secret put`):
+#   ANTHROPIC_API_KEY
+#   API_KEYS
+#   NCBI_API_KEY (optional)
+#   NCBI_EMAIL

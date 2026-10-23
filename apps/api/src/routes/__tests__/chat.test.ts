@@ -4,11 +4,14 @@ import request from 'supertest'
 // Mock the modelRouter to avoid real API calls
 vi.mock('../../services/modelRouter', () => ({
   checkOllamaHealth: vi.fn().mockResolvedValue(false),
-  routeModelStream: vi.fn(),
+  routeModelStream: vi.fn((_req, _provider, onText, onDone) => {
+    onDone({ input_tokens: 0, output_tokens: 0 })
+    return Promise.resolve()
+  }),
   selectProvider: vi.fn().mockReturnValue('claude'),
 }))
 
-const { default: app } = await import('../../index')
+import app from '../../index'
 
 describe('POST /api/chat', () => {
   it('returns 400 when messages array is missing', async () => {

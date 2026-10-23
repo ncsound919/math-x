@@ -20,7 +20,7 @@ function makeRes() {
   return res as unknown as Response
 }
 
-const next: NextFunction = vi.fn()
+const next = vi.fn() as unknown as NextFunction
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -41,7 +41,7 @@ describe('requireAuth middleware', () => {
 
   it('allows /health without any auth header', async () => {
     process.env.NODE_ENV = 'development'
-    const { requireAuth, initAuth } = await import('./auth')
+    const { requireAuth, initAuth } = await import('../auth')
     initAuth()
 
     const req = { path: '/health', headers: {} } as unknown as Request
@@ -54,7 +54,7 @@ describe('requireAuth middleware', () => {
 
   it('returns 401 when Authorization header is missing', async () => {
     process.env.API_KEYS = 'a'.repeat(32)
-    const { requireAuth, initAuth } = await import('./auth')
+    const { requireAuth, initAuth } = await import('../auth')
     initAuth()
 
     const req = makeReq() as Request
@@ -67,7 +67,7 @@ describe('requireAuth middleware', () => {
 
   it('returns 401 when Bearer token is wrong', async () => {
     process.env.API_KEYS = 'a'.repeat(32)
-    const { requireAuth, initAuth } = await import('./auth')
+    const { requireAuth, initAuth } = await import('../auth')
     initAuth()
 
     const req = makeReq('Bearer ' + 'b'.repeat(32)) as Request
@@ -81,7 +81,7 @@ describe('requireAuth middleware', () => {
   it('calls next() when Bearer token matches', async () => {
     const key = 'x'.repeat(32)
     process.env.API_KEYS = key
-    const { requireAuth, initAuth } = await import('./auth')
+    const { requireAuth, initAuth } = await import('../auth')
     initAuth()
 
     const req = makeReq(`Bearer ${key}`) as Request
@@ -96,7 +96,7 @@ describe('requireAuth middleware', () => {
     const key1 = 'k'.repeat(32)
     const key2 = 'm'.repeat(32)
     process.env.API_KEYS = `${key1},${key2}`
-    const { requireAuth, initAuth } = await import('./auth')
+    const { requireAuth, initAuth } = await import('../auth')
     initAuth()
 
     const req = makeReq(`Bearer ${key2}`) as Request
@@ -108,7 +108,7 @@ describe('requireAuth middleware', () => {
 
   it('rejects keys shorter than 32 characters', async () => {
     process.env.API_KEYS = 'short'
-    const { requireAuth, initAuth } = await import('./auth')
+    const { requireAuth, initAuth } = await import('../auth')
     initAuth() // short key is silently dropped, no valid keys remain
 
     const req = makeReq('Bearer short') as Request
@@ -122,7 +122,7 @@ describe('requireAuth middleware', () => {
 
   it('401 message is identical for wrong key vs nonexistent key (no information leak)', async () => {
     process.env.API_KEYS = 'a'.repeat(32)
-    const { requireAuth, initAuth } = await import('./auth')
+    const { requireAuth, initAuth } = await import('../auth')
     initAuth()
 
     const resWrong = makeRes()
@@ -142,7 +142,7 @@ describe('requireAuth middleware', () => {
     process.env.NODE_ENV = 'production'
     delete process.env.API_KEYS
     delete process.env.API_KEY
-    const { initAuth } = await import('./auth')
+    const { initAuth } = await import('../auth')
     expect(() => initAuth()).toThrow(/No valid API_KEYS/)
   })
 })

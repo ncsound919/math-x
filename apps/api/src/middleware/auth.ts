@@ -95,6 +95,12 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
     return
   }
 
+  // Dev/open mode: no keys configured → allow through (initAuth warns at boot)
+  if (keyHashes.length === 0) {
+    next()
+    return
+  }
+
   const token = extractBearerToken(req)
 
   if (!token) {

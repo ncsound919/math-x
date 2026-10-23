@@ -34,6 +34,9 @@ export {
   getDomainPrompt,
 } from './domainPrompts';
 
+// Domain registry
+export * from './domains';
+
 // Verification utilities
 export {
   parseVerifySteps,

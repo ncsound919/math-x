@@ -29,8 +29,12 @@ const MessageSchema = z.object({
 });
 
 const ChatRequestSchema = z.object({
-  messages: z.array(MessageSchema),
-  mode: z.string().default('scientist'),
+  messages: z.array(MessageSchema).min(1),
+  mode: z.string().default('scientist').refine(
+    (m) => Object.prototype.hasOwnProperty.call(MODE_PREFIXES, m) ||
+            ['scientist','formula','hypothesis','solve','synergy','probability','files','domain','deep-solve','file-intel'].includes(m),
+    { message: 'Invalid mode' },
+  ),
   domain: z.string().optional(),
   provider: z.enum(['claude', 'ollama', 'qwen', 'auto']).default('auto'),
   retrieved: z.array(z.object({
@@ -98,6 +102,9 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
   } catch (err: unknown) {
+    if (err instanceof z.ZodError) {
+      if (!res.headersSent) return res.status(400).json({ error: 'Invalid request', details: err.errors });
+    }
     const message = err instanceof Error ? err.message : 'Internal server error';
     console.error('Chat route error:', err);
     if (!res.headersSent) {

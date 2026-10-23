@@ -4,6 +4,7 @@ import cors from 'cors'
 import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 import { chatRouter }       from './routes/chat'
+import { chatAiRouter }     from './routes/chatAi'
 import { codegenRouter }    from './routes/codegen'
 import { planRouter }       from './routes/plan'
 import { verifyRouter }     from './routes/verify'
@@ -62,6 +63,7 @@ app.use(requireAuth)
 // Routes
 // ---------------------------------------------------------------------------
 app.use('/api/chat',       chatRouter)
+app.use('/api/chat-ai',    chatAiRouter)
 app.use('/api/codegen',    codegenRouter)
 app.use('/api/plan',       planRouter)
 app.use('/api/verify',     verifyRouter)

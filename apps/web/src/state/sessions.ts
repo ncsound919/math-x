@@ -85,6 +85,7 @@ export function newSession(mode = 'scientist', domain?: string): Session {
     messages: [],
     createdAt: now,
     updatedAt: now,
+    tags: [],
   };
 }
 
@@ -99,5 +100,6 @@ export function branchSession(parent: Session, atMessageIndex: number): Session 
     createdAt: now,
     updatedAt: now,
     parentId: parent.id,
+    tags: [],
   };
 }

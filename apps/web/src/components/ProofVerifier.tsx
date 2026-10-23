@@ -16,8 +16,10 @@ export interface DerivationStep {
 }
 
 interface ProofVerifierProps {
-  messageContent: string;
-  modeColor: string;
+  messageContent?: string;
+  content?: string;
+  modeColor?: string;
+  onResult?: (result: unknown) => void;
 }
 
 const STATUS_CONFIG: Record<VerificationStatus, { label: string; color: string; bg: string }> = {
@@ -34,8 +36,9 @@ const STATUS_CONFIG: Record<VerificationStatus, { label: string; color: string; 
  * E.g. "1. Start with f(x) = x^2 + 2x"
  * Looks for patterns like: "Step N:" or "N." followed by math expressions.
  */
-function extractSteps(content: string): DerivationStep[] {
+function extractSteps(content?: string): DerivationStep[] {
   const steps: DerivationStep[] = [];
+  if (!content) return steps;
   // Match lines like: "1. Description: expr_before -> expr_after"
   // or "Step 1: Description\n   Before: ...\n   After: ..."
   const lines = content.split('\n');
@@ -92,7 +95,8 @@ function inferStepType(text: string): string {
   return 'algebra';
 }
 
-export function ProofVerifier({ messageContent, modeColor }: ProofVerifierProps) {
+export function ProofVerifier({ messageContent, content, modeColor = '#F0A500', onResult }: ProofVerifierProps) {
+  const resolvedContent = messageContent ?? content ?? '';
   const { ready, verifySteps } = useSymPyVerifier();
   const [steps, setSteps] = useState<(DerivationStep & { status: VerificationStatus; error?: string })[]>([]);
   const [running, setRunning] = useState(false);
@@ -100,7 +104,7 @@ export function ProofVerifier({ messageContent, modeColor }: ProofVerifierProps)
   const [ran, setRan] = useState(false);
 
   const run = useCallback(async () => {
-    const extracted = extractSteps(messageContent);
+    const extracted = extractSteps(resolvedContent);
     if (extracted.length === 0) return;
     setSteps(extracted.map(s => ({ ...s, status: 'verifying' })));
     setRunning(true); setExpanded(true); setRan(true);
@@ -108,9 +112,9 @@ export function ProofVerifier({ messageContent, modeColor }: ProofVerifierProps)
     const results = await verifySteps(extracted);
     setSteps(prev => prev.map((s, i) => ({ ...s, ...(results[i] || { status: 'skipped' }) })));
     setRunning(false);
-  }, [messageContent, verifySteps]);
+  }, [resolvedContent, verifySteps]);
 
-  const extractedPreview = extractSteps(messageContent);
+  const extractedPreview = extractSteps(resolvedContent);
   if (extractedPreview.length === 0) return null;
 
   return (

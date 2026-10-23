@@ -45,6 +45,9 @@ export interface Message {
   plan?: Plan;
   literature?: LiteratureSnippet[];
   hypothesisResult?: HypothesisResult;
+  retrieved?: { source: string; text: string; score: number }[];
+  /** Cloudflare-deployable provenance: list of source ids/urls that grounded this answer. */
+  provenance?: Array<{ kind: 'paper' | 'chunk' | 'computation' | 'memory'; label: string; url?: string }>;
 }
 
 export interface Plan {

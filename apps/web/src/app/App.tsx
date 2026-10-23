@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { apiFetch } from '../utils/apiFetch';
 import { Omnibar } from '../components/Omnibar';
 import { ResultsPane } from '../components/ResultsPane';
+import { Notebook } from '../components/Notebook';
+import { AnalysisLab } from '../components/AnalysisLab';
+import { OncologyLab } from '../components/OncologyLab';
 import { LeftDrawer } from '../components/LeftDrawer';
 import { usePyodide } from '../workers/usePyodide';
 import { useDuckDB } from '../workers/useDuckDB';
@@ -30,6 +33,7 @@ export default function App() {
   const [ingestedFiles, setIngestedFiles] = useState<string[]>([]);
   const [provider, setProvider]           = useState<ProviderOption>('auto');
   const [sessions, setSessions]           = useState<Session[]>([]);
+  const [view, setView]                   = useState<'chat' | 'notebook' | 'analysis' | 'oncology'>('chat');
 
   const abortRef         = useRef<AbortController | null>(null);
   const currentSessionId = useRef<string | null>(null);
@@ -184,6 +188,8 @@ export default function App() {
       const finalMsg: Message = {
         role: 'assistant', content: fullText, streaming: false,
         provider: responseProvider, execution, plan,
+         retrieved: retrieved || [],
+         provenance: (retrieved || []).map(r => ({ kind: 'chunk' as const, label: r.source || 'memory' }))
       };
       setMessages(prev => {
         const next = [...prev];
@@ -268,6 +274,18 @@ export default function App() {
           <Dot active={pyReady} label="WASM" />
           <Dot active={dbReady} label="DB" />
           <Dot active={true} label="LIVE" pulse />
+          <button onClick={() => setView(v => v === 'notebook' ? 'chat' : 'notebook')}
+            style={{ background: view === 'notebook' ? 'var(--gold)22' : 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 9px', color: view === 'notebook' ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+            📓
+          </button>
+          <button onClick={() => setView(v => v === 'analysis' ? 'chat' : 'analysis')}
+            style={{ background: view === 'analysis' ? 'var(--gold)22' : 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 9px', color: view === 'analysis' ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+            🧪
+          </button>
+          <button onClick={() => setView(v => v === 'oncology' ? 'chat' : 'oncology')}
+            style={{ background: view === 'oncology' ? 'var(--gold)22' : 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 9px', color: view === 'oncology' ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '0.6rem', letterSpacing: '0.1em' }}>
+            🎗️
+          </button>
           {messages.length > 0 && (
             <button
               onClick={startNewSession}
@@ -304,24 +322,40 @@ export default function App() {
       </div>
 
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative', zIndex: 1 }}>
-        <LeftDrawer
-          open={drawerOpen}
-          ingestedFiles={ingestedFiles}
-          onIngest={ingestFolder}
-          modeColor={modeObj.color}
-          sessions={sessions}
-          activeSessionId={currentSessionId.current}
-          onRestoreSession={restoreSession}
-          onDeleteSession={handleDeleteSession}
-          onNewSession={startNewSession}
-        />
-        <ResultsPane
-          messages={messages}
-          loading={loading}
-          error={error}
-          modeObj={modeObj}
-          compute={compute}
-        />
+        {view === 'notebook' ? (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <Notebook modeColor={modeObj.color} compute={compute} onAskAI={async (p) => p} />
+          </div>
+        ) : view === 'analysis' ? (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <AnalysisLab modeColor={modeObj.color} />
+          </div>
+        ) : view === 'oncology' ? (
+          <div style={{ flex: 1, overflowY: 'auto' }}>
+            <OncologyLab modeColor={modeObj.color} />
+          </div>
+        ) : (
+          <>
+            <LeftDrawer
+              open={drawerOpen}
+              ingestedFiles={ingestedFiles}
+              onIngest={ingestFolder}
+              modeColor={modeObj.color}
+              sessions={sessions}
+              activeSessionId={currentSessionId.current}
+              onRestoreSession={restoreSession}
+              onDeleteSession={handleDeleteSession}
+              onNewSession={startNewSession}
+            />
+            <ResultsPane
+              messages={messages}
+              loading={loading}
+              error={error}
+              modeObj={modeObj}
+              compute={compute}
+            />
+          </>
+        )}
       </div>
 
       <Omnibar
