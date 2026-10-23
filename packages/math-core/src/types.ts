@@ -64,7 +64,19 @@ export type MathXDomain =
   | 'single_cell_analysis'
   | 'spatial_omics'
   | 'model_calibration_uncertainty'
-  | 'reproducibility_audit';
+  | 'reproducibility_audit'
+  | 'biotechnology_math'
+  | 'synthetic_biology_math'
+  | 'bioinformatics_math'
+  | 'structural_bioinformatics'
+  | 'spatial_statistics'
+  | 'spatial_epidemiology'
+  | 'spatial_genomics'
+  | 'geospatial_math'
+  | 'longitudinal_data_analysis'
+  | 'survival_analysis_math'
+  | 'time_series_biology'
+  | 'repeated_measures';
 
 /** Supported export format keys. */
 export type ExportFormat = 'markdown' | 'latex' | 'jupyter' | 'plain';
