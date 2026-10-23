@@ -14,6 +14,7 @@ import { bioRouter }        from './routes/bio'
 import { hypothesisRouter } from './routes/hypothesis'
 import { analogiesRouter }  from './routes/analogies'
 import domainRouter         from './routes/domain'
+import { autoformalizeRouter } from './routes/autoformalize'
 import { modelsRouter }     from './routes/models'
 import { exportRouter }     from './routes/export'
 import { requireAuth, initAuth } from './middleware/auth'
@@ -69,6 +70,7 @@ app.use('/api/plan',       planRouter)
 app.use('/api/verify',     verifyRouter)
 app.use('/api/literature', literatureRouter)
 app.use('/api/domain',     domainRouter)
+app.use('/api/autoformalize', autoformalizeRouter)
 app.use('/api/ocr',        ocrRouter)
 app.use('/api/bio',        bioRouter)
 app.use('/api/hypothesis', hypothesisRouter)
